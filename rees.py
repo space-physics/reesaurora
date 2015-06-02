@@ -3,14 +3,13 @@ from __future__ import division
 from os.path import expanduser
 from numpy import logspace, loadtxt,tile
 from dateutil.parser import parse
-from matplotlib.pyplot import figure,show
-#from matplotlib.colors import LogNorm
 import h5py
 #
-from ztanh import setupz
+from gridaurora.ztanh import setupz
 from msise00.demo_msis import rungtd1d
-from readionoinit import getaltgrid
 from rees_model import ionization_profile_from_flux
+
+isotropic=False
 """
 Discussion:
 We need to know how incident flux from the magnetosphere ionizes various species
@@ -42,7 +41,6 @@ def reesmodel(dtime,altkm,E,glat,glon,f107a,f107,ap,mass,matfn,h5fn):
     q = A.dot(Phi)
 
 def rees_aida(dtime,altkm,E,glat,glon,f107a,f107,ap,mass):
-    isotropic=True
     dens,temp = rungtd1d(dtime,altkm,glat,glon,f107a,f107,ap,mass)
 #%% temporary for testing with octave
 #    from scipy.io import savemat
@@ -75,6 +73,16 @@ def writeA(A,z,E,dtime,ofn):
         f['/glon']=glon
 
 if __name__ == '__main__':
+    from matplotlib.pyplot import figure,show
+    #from matplotlib.colors import LogNorm
+
+    import sys; sys.path.append('../transcarutils') #FIXME this approach is to avoid deeply nested transcarutils dependencies
+    from readionoinit import getaltgrid #transcarutils
+    import seaborn as sns
+    sns.color_palette(sns.color_palette("cubehelix"))
+    sns.set(context='talk', style='whitegrid',
+            rc={'image.cmap': 'cubehelix_r'}) #for contour
+#
     from argparse import ArgumentParser
     p = ArgumentParser(description='rees model of excitation rates for the aurora')
     p.add_argument('simtime',help='yyyy-mm-ddTHH:MM:SSZ time of sim',type=str,nargs='?',default='2013-03-31T09:00:00Z')
@@ -116,7 +124,7 @@ if __name__ == '__main__':
             writeA(Aaida,altkm,E,dtime,p.h5)
         plotA(Aaida,altkm,E,'Rees deposition matrix')
 #%% load JGR2013 data
-    with h5py.File('precompute/01Mar2011_FA.h5','r',libver='latest') as f:
+    with h5py.File('../transcarutils/precompute/01Mar2011_FA.h5','r',libver='latest') as f:
         Ajgr = f['/Mp'].value; zjgr = f['/z'].value; Ejgr=f['/E'].value
     plotA(Ajgr.sum(axis=0),zjgr,Ejgr,'JGR2013 deposition matrix')
 #%%

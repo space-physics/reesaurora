@@ -4,15 +4,12 @@
    After Sergienko and Ivanov 1993
    a massively speeded up implementation after the AIDA_TOOLS package by Gustavsson, Brandstrom, et al
 """
+from __future__ import division
 from pandas import DataFrame
 from numpy import gradient,array,linspace,zeros,diff,append,empty,arange,log10,exp,nan
 from scipy.interpolate import interp1d
-#
-from oct2py import Oct2Py
-oc = Oct2Py(executable='octave',oned_as='column',convert_to_float=True,
-                                        timeout=30)
 
-
+#TODO check that "isotropic" is handled consistently with original code
 def ionization_profile_from_flux(E,dens,isotropic):
     E_cost_ion = array([36.8,26.8,28.2])
     ki = array([1, 0.7, 0.4])
@@ -49,13 +46,13 @@ def energy_deg(E,isotropic,dens):
 
     Am = zeros((E.size,N_alt0))
     D_en = gradient(E)
-    r = oc.Pat_range(E,isotropic+1)
+    r = Pat_range(E,isotropic)
 
-    hi = zetm/r
+    hi = zetm/r[:,None]
 
     Lambda = lambda_comp(hi,E,isotropic)
 
-    Am = atmp.iloc[:,-1].values * Lambda * E[:,None] * (1-alb[:,None])/r
+    Am = atmp.iloc[:,-1].values * Lambda * E[:,None] * (1-alb[:,None])/r[:,None]
 
 #    for i in range(N_alt0):
 #        Am[:,i] = atmp.iat[i,-1] * Lambda[:,i] * E[:,None] * (1-alb)/r
@@ -64,6 +61,10 @@ def energy_deg(E,isotropic,dens):
     Am[-1,:]*= D_en[-1]/2
     Am[1:-2,:] *= (D_en[1:-2]+D_en[0:-3])[:,None]/2
     return Am
+
+def Pat_range(E,isotropic):
+    pr= 1.64e-06 if isotropic else 2.16e-06
+    return pr * (E/1000)**1.67 * (1 + 9.48e-02 * E**-1.57)
 
 def albedo(E,isotropic):
     isotropic = int(isotropic)
