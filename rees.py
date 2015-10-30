@@ -6,7 +6,7 @@ from dateutil.parser import parse
 import h5py
 #
 from gridaurora.ztanh import setupz
-from msise00.demo_msis import rungtd1d
+from msise00.runmsis import rungtd1d
 from rees_model import ionization_profile_from_flux
 
 isotropic=False
