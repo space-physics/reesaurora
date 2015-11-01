@@ -1,5 +1,7 @@
 six
+pytz
 python-dateutil
+nose
 numpy
 pandas
 scipy
