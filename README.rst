@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.org/scienceopen/reesaurora.svg
+    :target: https://travis-ci.org/scienceopen/reesaurora
+    
 ==========
 ReesAurora
 ==========
