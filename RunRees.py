@@ -6,7 +6,7 @@ sns.color_palette(sns.color_palette("cubehelix"))
 sns.set(context='talk', style='whitegrid',
         rc={'image.cmap': 'cubehelix_r'}) #for contour
 #
-from rees_model import reesiono,loadaltenergrid,plotA
+from reesaurora.rees_model import reesiono,loadaltenergrid,plotA
 from gridaurora.writeeigen import writeeigen
 
 isotropic=False
