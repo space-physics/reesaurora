@@ -15,7 +15,7 @@ def test_reesiono():
     mass=48.
     t = datetime(2013,3,31,12,tzinfo=UTC)
 #%%
-    apfn = '../data/RecentIndices.txt'
+    apfn = 'data/RecentIndices.txt'
     f107Ap=readmonthlyApF107(int(str(t.year) + '{:02d}'.format(t.month)),
                              apfn)
     f107a = f107Ap['f107s']
