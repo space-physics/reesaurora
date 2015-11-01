@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import division,absolute_import
-from numpy import tile,ones_like
+from numpy import tile
 from matplotlib.pyplot import show
 import seaborn as sns
 sns.color_palette(sns.color_palette("cubehelix"))
@@ -10,6 +10,7 @@ sns.set(context='talk', style='whitegrid',
 from rees_model import reesiono,loadaltenergrid,plotA
 from gridaurora.writeeigen import writeeigen
 
+isotropic=False
 """
 Models unit incident flux from the magnetosphere ionizing N2,O,O2
 vs. altitude and inital beam energy in the ionosphere.
@@ -18,7 +19,7 @@ known proportions.
 
 Variables:
 q: e- production rate [cm^-3 s^-1]
-Phi: "flux" [cm^-2 s^-1 eV^-1] (here )
+Phi: "flux" [cm^-2 s^-1 eV^-1]
 A: energy deposition matrix [eV cm^-1]
 
 References:
