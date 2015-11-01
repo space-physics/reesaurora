@@ -1,11 +1,11 @@
+setuptools
 six
-pytz
 python-dateutil
+pytz
 nose
 numpy
-pandas
 scipy
-matplotlib
+pandas
 h5py
 astropy
-
+matplotlib
