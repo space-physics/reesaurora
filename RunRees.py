@@ -8,6 +8,7 @@ sns.set(context='talk', style='whitegrid',
 #
 from reesaurora.rees_model import reesiono,loadaltenergrid,plotA
 from gridaurora.writeeigen import writeeigen
+from gridaurora.solarangle import solarzenithangle
 
 isotropic=False
 """
@@ -48,7 +49,7 @@ def runrees(t,glat,glon,f107a,f107,ap,mass,isotropic,outfn,minalt,nalt,vlim):
 if __name__ == '__main__':
     from argparse import ArgumentParser
     p = ArgumentParser(description='rees model of excitation rates for the aurora')
-    p.add_argument('simtime',help='yyyy-mm-ddTHH:MM:SSZ time of sim',nargs='?',default='2013-03-31T09:00:00Z')
+    p.add_argument('simtime',help='yyyy-mm-ddTHH:MM:SSZ time of sim')
     p.add_argument('-c','--latlon',help='geodetic latitude/longitude (deg)',type=float,nargs=2,default=(65.12,-147.43 ))
     p.add_argument('--f107a',help=' 81 day AVERAGE OF F10.7 FLUX (centered on day DDD)',type=float,default=107.6)
     p.add_argument('--f107',help='DAILY F10.7 FLUX FOR PREVIOUS DAY',type=float,default=126.0)
@@ -66,5 +67,8 @@ if __name__ == '__main__':
     runrees(p.simtime,p.latlon[0],p.latlon[1],
             p.f107a,p.f107,p.ap,p.mass,p.isotropic,
             p.outfn,p.minalt,p.nalt,p.vlim)
+
+    print('solar zenith angle  {:.1f}'.format(solarzenithangle(
+           p.simtime,p.latlon[0],p.latlon[1],0.)[0]))
 
     show()
