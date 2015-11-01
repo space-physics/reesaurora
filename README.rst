@@ -1,6 +1,12 @@
 .. image:: https://travis-ci.org/scienceopen/reesaurora.svg
     :target: https://travis-ci.org/scienceopen/reesaurora
-    
+
+.. image:: https://coveralls.io/repos/scienceopen/reesaurora/badge.svg?branch=master&service=github 
+    :target: https://coveralls.io/github/scienceopen/reesaurora?branch=master
+
+.. image:: https://codeclimate.com/github/scienceopen/reesaurora/badges/gpa.svg
+   :target: https://codeclimate.com/github/scienceopen/reesaurora
+   :alt: Code Climate    
 ==========
 ReesAurora
 ==========
