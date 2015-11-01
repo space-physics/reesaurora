@@ -8,4 +8,4 @@ scipy
 matplotlib
 h5py
 astropy
-scikit-image
+
