@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from __future__ import division,absolute_import
-from numpy import tile
 from matplotlib.pyplot import show
 import seaborn as sns
 sns.color_palette(sns.color_palette("cubehelix"))
@@ -35,14 +34,14 @@ def runrees(t,glat,glon,f107a,f107,ap,mass,isotropic,outfn,minalt,nalt,vlim):
 
 
     """
-    altkm,E = loadaltenergrid(minalt,nalt)
+    z,E = loadaltenergrid(minalt,nalt)
 
-    Aaida = reesiono(t, altkm, E, glat, glon, f107a, f107, ap, mass,isotropic)
+    q = reesiono(t, z, E, glat, glon, f107a, f107, ap, mass,isotropic)
 
 #%% outputs
-    writeeigen(outfn,E,t,tezs=None,latlon=(glat,glon))
+    writeeigen(outfn,E,t,z,prates=q,tezs=None,latlon=(glat,glon))
 
-    plotA(Aaida,altkm,E,'Rees deposition matrix',vlim)
+    plotA(q,'Rees deposition matrix',vlim)
 
 
 
@@ -53,7 +52,7 @@ if __name__ == '__main__':
     p.add_argument('-c','--latlon',help='geodetic latitude/longitude (deg)',type=float,nargs=2,default=(65.12,-147.43 ))
     p.add_argument('--f107a',help=' 81 day AVERAGE OF F10.7 FLUX (centered on day DDD)',type=float,default=107.6)
     p.add_argument('--f107',help='DAILY F10.7 FLUX FOR PREVIOUS DAY',type=float,default=126.0)
-    p.add_argument('--ap',help='daily ap, 0-3hr, 3-6hr, 6-9hr, 9-12hr,12-33hr, 36-57hr',type=float,nargs=7,default=tile(63.7,7))
+    p.add_argument('--ap',help='daily ap, 0-3hr, 3-6hr, 6-9hr, 9-12hr,12-33hr, 36-57hr',type=float,nargs=7,default=(63.7,)*7)
     p.add_argument('--mass',help=('MASS NUMBER (ONLY DENSITY FOR SELECTED GAS IS ' +
                        'CALCULATED.  MASS 0 IS TEMPERATURE.  MASS 48 FOR ALL. '+
                          'MASS 17 IS Anomalous O ONLY.'),type=float,default=48)

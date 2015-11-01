@@ -6,9 +6,9 @@
 """
 from __future__ import division,absolute_import
 from six import string_types
-from pandas import DataFrame
+from pandas import DataFrame,Panel
 from numpy import (gradient,array,linspace,zeros,diff,append,empty,arange,log10,exp,nan,
-                   logspace)
+                   logspace,atleast_1d)
 from scipy.interpolate import interp1d
 from matplotlib.pyplot import figure
 from matplotlib.colors import LogNorm
@@ -20,6 +20,30 @@ try:
     from glowaurora.runglow import glowalt
 except:
     pass
+
+def reesiono(T,altkm,E,glat,glon,f107a,f107,ap,mass,isotropic):
+    #other assertions covered inside modules
+    assert isinstance(isotropic,bool)
+    T = atleast_1d(T)
+#%% MSIS
+    if isotropic:
+        print('isotropic pitch angle flux')
+    else:
+        print('field-aligned pitch angle flux')
+
+    tselecopts = array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)
+
+    qPanel = Panel(items=T,
+                   major_axis=E,
+                   minor_axis=altkm)
+#%% loop
+    for t in T:
+        dens,temp = rungtd1d(t,altkm,glat,glon,f107a,f107,ap,mass,tselecopts)
+
+        q = ionization_profile_from_flux(E,dens,isotropic)
+        qPanel.loc[t,:,:] = q.T
+
+    return qPanel
 
 #TODO check that "isotropic" is handled consistently with original code
 def ionization_profile_from_flux(E,dens,isotropic):
@@ -153,24 +177,11 @@ def partition(dens,ki):
     P = ki[[0,2,1]]*dens[['N2','O','O2']].values
     return P / P.sum(axis=1)[:,None]
 
-def reesiono(dtime,altkm,E,glat,glon,f107a,f107,ap,mass,isotropic):
-    if isotropic:
-        print('isotropic pitch angle flux')
-    else:
-        print('field-aligned pitch angle flux')
-
-    tselecopts = array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)
-    dens,temp = rungtd1d(dtime,altkm,glat,glon,f107a,f107,ap,mass,tselecopts)
-#%% temporary for testing with octave
-#    from scipy.io import savemat
-#    savemat('debug_msis.mat',{'z':altkm,'E':E,'O':dens['O'].values,
-#                              'N2':dens['N2'].values,'O2':dens['O2'].values,
-#                              'Total':dens['Total'].values},
-#            oned_as='column')
-#%% python port
-    return ionization_profile_from_flux(E,dens,isotropic)
-
-def plotA(A,z,E,ttxt,vlim):
+def plotA(q,ttxt,vlim):
+    E=q.major_axis.values
+    z=q.minor_axis.values
+    Q=q.values.squeeze().T
+#%%
     def _doax(ax):
        ax.yaxis.set_major_locator(MultipleLocator(100))
        ax.yaxis.set_minor_locator(MultipleLocator(20))
@@ -180,7 +191,7 @@ def plotA(A,z,E,ttxt,vlim):
 
     fg = figure()
     ax = fg.gca()
-    hi = ax.pcolormesh(E,z,A,
+    hi = ax.pcolormesh(E,z,Q,
                        vmin=vlim[0],vmax=vlim[1],
                        norm=LogNorm())
     c=fg.colorbar(hi,ax=ax)
@@ -190,7 +201,7 @@ def plotA(A,z,E,ttxt,vlim):
     _doax(ax)
 #%% same data, differnt plot
     ax = figure().gca()
-    ax.plot(A,z)
+    ax.plot(Q,z)
     ax.set_xlim(vlim)
     ax.set_xlabel('Energy Deposition')
     _doax(ax)
