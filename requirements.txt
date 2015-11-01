@@ -1,0 +1,7 @@
+six
+dateutil
+numpy
+pandas
+scipy
+matplotlib
+h5py
