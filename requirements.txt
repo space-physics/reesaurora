@@ -1,5 +1,4 @@
 six
-dateutil
 numpy
 pandas
 scipy
