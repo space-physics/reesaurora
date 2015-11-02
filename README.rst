@@ -14,6 +14,8 @@ ReesAurora
 Rees-Sergienko-Ivanov module of excitation rates, relevant to auroral optical emissions
 inspired/based upon Gustavsson / Brandstrom et al `AIDA_Tools <https://github.com/scienceopen/AIDA-tools>`_
 
+Uses MSISE-00 to generate O, O2, N2 densities, and models outcome of primary electron precipitation on this neutral background. Validity at high energies unverified.
+
 .. image:: test/demo.png
    :alt: volume production rate
 
