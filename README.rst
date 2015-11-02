@@ -14,6 +14,9 @@ ReesAurora
 Rees-Sergienko-Ivanov module of excitation rates, relevant to auroral optical emissions
 inspired/based upon Gustavsson / Brandstrom et al `AIDA_Tools <https://github.com/scienceopen/AIDA-tools>`_
 
+.. image:: test/demo.png
+   :alt: volume production rate
+
 .. contents::
 
 Installation

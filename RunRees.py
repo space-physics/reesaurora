@@ -44,7 +44,7 @@ def runrees(t,glat,glon,f107a,f107,ap,mass,isotropic,outfn,minalt,nalt,vlim):
 #%% outputs
     writeeigen(outfn,E,t,z,prates=q,tezs=None,latlon=(glat,glon))
 
-    plotA(q,'Rees deposition matrix',vlim)
+    plotA(q,'Volume Production Rate {}  {} {}'.format(t,glat,glon),vlim)
 
 
 

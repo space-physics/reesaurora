@@ -195,7 +195,7 @@ def plotA(q,ttxt,vlim):
                        vmin=vlim[0],vmax=vlim[1],
                        norm=LogNorm())
     c=fg.colorbar(hi,ax=ax)
-    c.set_label('Energy Deposition')
+    c.set_label('Volume Production Rate')
     ax.set_xlabel('beam energy [eV]')
     ax.autoscale(True,tight=True) #fill axes
     _doax(ax)
