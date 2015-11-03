@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
     t = parse(p.simtime)
 #%%
-    f107Ap=readmonthlyApF107(int(str(t.year) + '{:02d}'.format(t.month)),'data/RecentIndices.txt')
+    f107Ap=readmonthlyApF107(t,'data/RecentIndices.txt')
 
     f107a = f107Ap['f107s']
     f107  = f107Ap['f107o']
