@@ -16,12 +16,13 @@ from matplotlib.ticker import MultipleLocator
 #
 from gridaurora.ztanh import setupz
 from msise00.runmsis import rungtd1d
+from gridaurora.readApF107 import readmonthlyApF107
 try:
     from glowaurora.runglow import glowalt
 except:
     pass
 
-def reesiono(T,altkm,E,glat,glon,f107a,f107,ap,mass,isotropic):
+def reesiono(T,altkm,E,glat,glon,isotropic):
     #other assertions covered inside modules
     assert isinstance(isotropic,bool)
     T = atleast_1d(T)
@@ -31,14 +32,19 @@ def reesiono(T,altkm,E,glat,glon,f107a,f107,ap,mass,isotropic):
     else:
         print('field-aligned pitch angle flux')
 
-    tselecopts = array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)
-
     qPanel = Panel(items=T,
                    major_axis=E,
                    minor_axis=altkm)
 #%% loop
     for t in T:
-        dens,temp = rungtd1d(t,altkm,glat,glon,f107a,f107,ap,mass,tselecopts)
+        f107Ap=readmonthlyApF107(t,'data/RecentIndices.txt')
+        f107a = f107Ap['f107s']
+        f107  = f107Ap['f107o']
+        ap    = (f107Ap['Apo'],)*7
+
+        dens,temp = rungtd1d(t,altkm,glat,glon,f107a,f107,ap,
+                             mass=48.,
+                             tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)) #leave mass=48. !
 
         q = ionization_profile_from_flux(E,dens,isotropic)
         qPanel.loc[t,:,:] = q.T

@@ -33,7 +33,7 @@ Example
 ==================
 ::
 
-  python RunRees.py 2011-03-15T12:34:56Z -c 65 -148
+  python RunRees.py -t 2011-03-15T12:34:56Z -c 65 -148
 
 -o    specify output file (HDF5)
 -c    specify geographic lat,lon
