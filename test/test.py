@@ -5,26 +5,16 @@ from pytz import UTC
 from numpy.testing import assert_allclose
 #
 from reesaurora.rees_model import reesiono,loadaltenergrid
-from gridaurora.readApF107 import readmonthlyApF107
-
 
 def test_reesiono():
     minalt=30; nalt=286
     isotropic=False
     glat=65; glon=-148
-    mass=48.
     t = datetime(2013,3,31,12,tzinfo=UTC)
-#%%
-    apfn = 'data/RecentIndices.txt'
-    f107Ap=readmonthlyApF107(int(str(t.year) + '{:02d}'.format(t.month)),
-                             apfn)
-    f107a = f107Ap['f107s']
-    f107  = f107Ap['f107o']
-    ap    = (f107Ap['Apo'],)*7
 #%%
     z,E = loadaltenergrid(minalt,nalt)
 #%%
-    Q = reesiono(t,z,E,glat,glon,f107a,f107,ap,mass,isotropic)
+    Q = reesiono(t,z,E,glat,glon,isotropic)
 #%%
     assert_allclose(Q.minor_axis.values,z)
     assert_allclose(Q.major_axis.values,E)
