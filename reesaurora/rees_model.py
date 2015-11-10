@@ -37,7 +37,7 @@ def reesiono(T,altkm,E,glat,glon,isotropic):
                    minor_axis=altkm)
 #%% loop
     for t in T:
-        f107Ap=readmonthlyApF107(t,'data/RecentIndices.txt')
+        f107Ap=readmonthlyApF107(t)
         f107a = f107Ap['f107s']
         f107  = f107Ap['f107o']
         ap    = (f107Ap['Apo'],)*7
