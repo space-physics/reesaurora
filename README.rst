@@ -25,7 +25,6 @@ Installation
 ============
 ::
 
-  git clone https://github.com/scienceopen/reesaurora
   python setup.py develop
 
 Example
