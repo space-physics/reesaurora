@@ -25,8 +25,7 @@ Installation
 ============
 ::
 
-  git clone --depth 1 https://github.com/scienceopen/reesaurora
-  conda install --file requirements.txt
+  git clone https://github.com/scienceopen/reesaurora
   python setup.py develop
 
 Example
