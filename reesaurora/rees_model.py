@@ -4,25 +4,23 @@
    After Sergienko and Ivanov 1993
    a massively speeded up implementation after the AIDA_TOOLS package by Gustavsson, Brandstrom, et al
 """
+import logging
 from dateutil.parser import parse
 from datetime import datetime
-from pandas import DataFrame,Panel
+from pandas import Panel
 from numpy import (gradient,array,linspace,zeros,diff,append,empty,arange,log10,exp,nan,
-                   logspace,atleast_1d)
+                   logspace,atleast_1d,ndarray)
 from scipy.interpolate import interp1d
-from matplotlib.pyplot import figure
-from matplotlib.colors import LogNorm
-from matplotlib.ticker import MultipleLocator
 #
 from gridaurora.ztanh import setupz
 from msise00.runmsis import rungtd1d
 from gridaurora.readApF107 import readmonthlyApF107
 try:
     from glowaurora.runglow import glowalt
-except:
-    pass
+except ImportError as e:
+    logging.error(e)
 
-def reesiono(T,altkm,E,glat:float,glon:float,isotropic:bool):
+def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool):
     #other assertions covered inside modules
     assert isinstance(isotropic,bool)
 
@@ -32,9 +30,9 @@ def reesiono(T,altkm,E,glat:float,glon:float,isotropic:bool):
     assert isinstance(T[0],datetime)
 #%% MSIS
     if isotropic:
-        print('isotropic pitch angle flux')
+        logging.debug('isotropic pitch angle flux')
     else:
-        print('field-aligned pitch angle flux')
+        logging.debug('field-aligned pitch angle flux')
 
     qPanel = Panel(items=T,
                    major_axis=E,
@@ -61,19 +59,29 @@ def ionization_profile_from_flux(E,dens,isotropic):
     simple model for volume emission as function of altitude.
     After Sergienko and Ivanov 1993 and Gustavsson AIDA_TOOLs
     """
-    E_cost_ion = array([36.8,26.8,28.2])
+
+    if ((E<1e2) | (E>1e4)).any():
+        logging.warning('Sergienko & Ivanov 1993 covered E \in [100,10000] eV')
+
+    if (dens.index>700.).any():
+        logging.warning('Sergienko & Ivanov 1993 assumed electron source was at altitude 700km.')
+
+#%% Table 1 Sergienko & Ivanov 1993, rightmost column
+    # mean energy per ion-electron pair
+    E_cost_ion = array([36.8,26.8,28.2]) # N_2, O, O_2
+
     ki = array([1, 0.7, 0.4])
 
     dE = diff(E); dE = append(dE,dE[-1])
 
     Partitioning = partition(dens,ki)
 
-#%% First calculate the energy deposition as a function of altitude
+#%% Calculate the energy deposition as a function of altitude
     qE = empty((dens.shape[0],E.size)) # Nalt x Nenergy
     for i,(e,d) in enumerate(zip(E,dE)):
-        Ebins = linspace(e,e+d,20)
+        Ebins = linspace(e,e+d,20) #make a subset of fine resolution energy bins within bigger  energy bins
         #for isotropic or field aligned electron beams
-        Am = energy_deg(Ebins,isotropic,dens)
+        Am,Lambda = energy_deg(Ebins,isotropic,dens) # Nsubenergy x Naltitude
 
         q= Am.sum(axis=0) #sum over the interim energy sub-bins
         q *= (Partitioning/E_cost_ion).sum(axis=1) #effect of ion chemistry at each altitude
@@ -84,15 +92,15 @@ def energy_deg(E,isotropic,dens):
     """
     energy degradation of precipitating electrons
     """
-    atmp = DataFrame(index=dens.index)
-    atmp[['N2','O','O2']] = dens[['N2','O','O2']]/1e6
-    atmp['Total'] = dens['Total']/1e3
+    #atmp = DataFrame(index=dens.index)
+    #atmp[['N2','O','O2']] = dens[['N2','O','O2']]/1e6
+    atmp = dens['Total'].values/1e3
 
     N_alt0 = atmp.shape[0]
     zetm = zeros(N_alt0)
-    dH = gradient(atmp.index)
+    dH = gradient(dens.index)
     for i in range(N_alt0-1,0,-1): #careful with these indices!
-        dzetm = (atmp.iat[i,-1]+atmp.iat[i-1,-1])*dH[i-1]*1e5/2
+        dzetm = (atmp[i] +atmp[i-1])*dH[i-1]*1e5/2
         zetm[i-1] = zetm[i] + dzetm
 
     alb = albedo(E,isotropic)
@@ -101,19 +109,16 @@ def energy_deg(E,isotropic,dens):
     D_en = gradient(E)
     r = Pat_range(E,isotropic)
 
-    hi = zetm / r[:,None]
+    chi = zetm / r[:,None]
 
-    Lambda = lambda_comp(hi,E,isotropic)
+    Lambda = lambda_comp(chi,E,isotropic)
 
-    Am = atmp.iloc[:,-1].values * Lambda * E[:,None] * (1-alb[:,None])/r[:,None]
-
-#    for i in range(N_alt0):
-#        Am[:,i] = atmp.iat[i,-1] * Lambda[:,i] * E[:,None] * (1-alb)/r
+    Am = atmp * Lambda * E[:,None] * (1-alb[:,None])/r[:,None]
 
     Am[0,:] *= D_en[0]/2.
     Am[-1,:]*= D_en[-1]/2.
     Am[1:-2,:] *= (D_en[1:-2]+D_en[0:-3])[:,None]/2.
-    return Am
+    return Am,Lambda
 
 def Pat_range(E,isotropic):
     pr= 1.64e-6 if isotropic else 2.16e-6
@@ -133,10 +138,14 @@ def albedo(E,isotropic):
 
     return alb
 
-def lambda_comp(hi,E,isotropic):
+def lambda_comp(chi,E,isotropic):
     """
+    Implements Eqn. A2 from Sergienko & Ivanov 1993
+
     interpolated over energies from 48.9 eV to 5012 eV
-    for isotropic and field-aligned precipitation
+    for field-aligned precipitation
+
+    over 48.9ev to 1000 eV for isotropic precipitation
     """
 #%% field-aligned
     logE_m= append(1.69,arange(1.8,3.7+0.1,0.1))
@@ -172,13 +181,13 @@ def lambda_comp(hi,E,isotropic):
     fC=interp1d(LE,P,kind='linear',axis=1,bounds_error=False,fill_value=nan)
     C = fC(logE)
 #%% low energy
-    lam = ((C[0,:][:,None]*hi + C[1,:][:,None]) *
-            exp(C[2,:][:,None]*hi**2 + C[3,:][:,None]*hi))
+    lam = ((C[0,:][:,None]*chi + C[1,:][:,None]) *
+            exp(C[2,:][:,None]*chi**2 + C[3,:][:,None]*chi))
 #%% high energy
     badind = E>Emax
     lam[badind] = (
-                   (P[0,-1]*hi[badind] + P[1,-1]) *
-                   exp(P[2,-1]*hi[badind]**2 + P[3,-1]*hi[badind])
+                   (P[0,-1]*chi[badind] + P[1,-1]) *
+                   exp(P[2,-1]*chi[badind]**2 + P[3,-1]*chi[badind])
                    )
 
     return lam
@@ -186,35 +195,6 @@ def lambda_comp(hi,E,isotropic):
 def partition(dens,ki):
     P = ki[[0,2,1]]*dens[['N2','O','O2']].values
     return P / P.sum(axis=1)[:,None]
-
-def plotA(q,ttxt,vlim):
-    E=q.major_axis.values
-    z=q.minor_axis.values
-    Q=q.values.squeeze().T
-#%%
-    def _doax(ax):
-       ax.yaxis.set_major_locator(MultipleLocator(100))
-       ax.yaxis.set_minor_locator(MultipleLocator(20))
-       ax.set_xscale('log')
-       ax.set_ylabel('altitude [km]')
-       ax.set_title(ttxt)
-
-    fg = figure()
-    ax = fg.gca()
-    hi = ax.pcolormesh(E,z,Q,
-                       vmin=vlim[0],vmax=vlim[1],
-                       norm=LogNorm())
-    c=fg.colorbar(hi,ax=ax)
-    c.set_label('Volume Production Rate')
-    ax.set_xlabel('beam energy [eV]')
-    ax.autoscale(True,tight=True) #fill axes
-    _doax(ax)
-#%% same data, differnt plot
-    ax = figure().gca()
-    ax.plot(Q,z)
-    ax.set_xlim(vlim)
-    ax.set_xlabel('Energy Deposition')
-    _doax(ax)
 
 def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     """
@@ -224,7 +204,7 @@ def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     Nalt: number of points in grid
     special_grid: use same grid as 'transcar' or 'glow'
     """
-    assert isinstance(special_grid,str)
+    assert isinstance(special_grid,(str,None))
     #%% altitude
     if special_grid.lower()=='transcar':
         z = setupz(286,90,1.5,11.1475)
