@@ -4,8 +4,8 @@
    After Sergienko and Ivanov 1993
    a massively speeded up implementation after the AIDA_TOOLS package by Gustavsson, Brandstrom, et al
 """
-from __future__ import division,absolute_import
-from six import string_types
+from dateutil.parser import parse
+from datetime import datetime
 from pandas import DataFrame,Panel
 from numpy import (gradient,array,linspace,zeros,diff,append,empty,arange,log10,exp,nan,
                    logspace,atleast_1d)
@@ -22,10 +22,14 @@ try:
 except:
     pass
 
-def reesiono(T,altkm,E,glat,glon,isotropic):
+def reesiono(T,altkm,E,glat:float,glon:float,isotropic:bool):
     #other assertions covered inside modules
     assert isinstance(isotropic,bool)
+
+    if isinstance(T,str):
+        T=parse(T)
     T = atleast_1d(T)
+    assert isinstance(T[0],datetime)
 #%% MSIS
     if isotropic:
         print('isotropic pitch angle flux')
@@ -220,7 +224,7 @@ def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     Nalt: number of points in grid
     special_grid: use same grid as 'transcar' or 'glow'
     """
-    assert isinstance(special_grid,string_types)
+    assert isinstance(special_grid,str)
     #%% altitude
     if special_grid.lower()=='transcar':
         z = setupz(286,90,1.5,11.1475)
