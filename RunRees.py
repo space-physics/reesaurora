@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-from __future__ import division,absolute_import
 from dateutil.parser import parse
+from numpy import array
 from matplotlib.pyplot import show
 import seaborn as sns
 sns.color_palette(sns.color_palette("cubehelix"))
 sns.set(context='talk', style='whitegrid',
         rc={'image.cmap': 'cubehelix_r'}) #for contour
 #
-from reesaurora.rees_model import reesiono,loadaltenergrid,plotA
+from reesaurora.rees_model import reesiono,loadaltenergrid,energy_deg
+from reesaurora.plots import fig11,plotA
 from gridaurora.writeeigen import writeeigen
 from gridaurora.solarangle import solarzenithangle
 #
@@ -46,18 +47,28 @@ def runrees(t,glat,glon,isotropic,outfn,minalt,nalt,vlim):
     plotA(q,'Volume Production Rate {}  {} {}'.format(t,glat,glon),vlim)
 
 
+def makefig11():
+    from msise00.runmsis import rungtd1d
+
+    z,E = loadaltenergrid(30.,200)
+
+    E = array([1000,5000.])
+
+    dens,temp = rungtd1d(t,altkm=z,glat=65.,glon=148.,
+                         f107a=100.,f107=100.,ap=4.,
+                     mass=48.,
+                     tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)) #leave mass=48. !
+
+#%% make figure 11 from Sergienko and Ivanov 1993
+    Am,Lambda = energy_deg(E,isotropic,dens)
+
+    fig11(E,Lambda)
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
     p = ArgumentParser(description='rees model of excitation rates for the aurora')
-    p.add_argument('-t','--simtime',help='yyyy-mm-ddTHH:MM:SSZ time of sim',required=True)
-    p.add_argument('-c','--latlon',help='geodetic latitude/longitude (deg)',type=float,nargs=2,required=True)
-#    p.add_argument('--f107a',help=' 81 day AVERAGE OF F10.7 FLUX (centered on day DDD)',type=float)
-#    p.add_argument('--f107',help='DAILY F10.7 FLUX FOR PREVIOUS DAY',type=float)
-#    p.add_argument('--ap',help='daily ap, 0-3hr, 3-6hr, 6-9hr, 9-12hr,12-33hr, 36-57hr',type=float,nargs=7)
-    #p.add_argument('--mass',help=('MASS NUMBER (ONLY DENSITY FOR SELECTED GAS IS ' +
-    #                   'CALCULATED.  MASS 0 IS TEMPERATURE.  MASS 48 FOR ALL. '+
-    #                     'MASS 17 IS Anomalous O ONLY.'),type=float,default=48)
+    p.add_argument('-t','--simtime',help='yyyy-mm-ddTHH:MM:SSZ time of sim',default='2013-01-01T12Z')
+    p.add_argument('-c','--latlon',help='geodetic latitude/longitude (deg)',type=float,nargs=2,default=(65,-148))
     p.add_argument('--minalt',help='minimum altitude in grid [km]',type=float,default=30)
     p.add_argument('--nalt',help='Number of points in altitude grid',type=int,default=286)
     p.add_argument('-o','--outfn',help='give hdf5 filename to save eigenprofile production')
@@ -71,5 +82,7 @@ if __name__ == '__main__':
             p.outfn,p.minalt,p.nalt,p.vlim)
 
     print('solar zenith angle  {:.1f} '.format(solarzenithangle(p.simtime,p.latlon[0],p.latlon[1],0.)[0]))
+
+    makefig11()
 
     show()

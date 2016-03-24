@@ -11,7 +11,7 @@ def test_reesiono():
     glat=65; glon=-148
     t = '2013-03-31T12:00:00Z' #datetime(2013,3,31,12,tzinfo=UTC)
 #%%
-    z,E = loadaltenergrid(minalt,nalt)
+    z,E = loadaltenergrid(minalt,nalt) #altitude grid, Energy Grid
 #%%
     Q = reesiono(t,z,E,glat,glon,isotropic)
 #%%
