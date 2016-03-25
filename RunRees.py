@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 from dateutil.parser import parse
-from numpy import array
+from numpy import array,arange,tile
 from matplotlib.pyplot import show
 import seaborn as sns
 sns.color_palette(sns.color_palette("cubehelix"))
 sns.set(context='talk', style='whitegrid',
         rc={'image.cmap': 'cubehelix_r'}) #for contour
 #
-from reesaurora.rees_model import reesiono,loadaltenergrid,energy_deg
+from reesaurora.rees_model import reesiono,loadaltenergrid,lambda_comp
 from reesaurora.plots import fig11,plotA
 from gridaurora.writeeigen import writeeigen
 from gridaurora.solarangle import solarzenithangle
@@ -52,7 +52,7 @@ def makefig11():
 
     z,E = loadaltenergrid(30.,200)
 
-    E = array([1000,5000.])
+    E = array([50,100,500,1000,5000.])
 
     dens,temp = rungtd1d(t,altkm=z,glat=65.,glon=148.,
                          f107a=100.,f107=100.,ap=4.,
@@ -60,9 +60,13 @@ def makefig11():
                      tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)) #leave mass=48. !
 
 #%% make figure 11 from Sergienko and Ivanov 1993
-    Am,Lambda = energy_deg(E,isotropic,dens)
+    #Am,Lambda,chi = energy_deg(E,isotropic,dens)
+    chi = tile(arange(0,3,0.01),(E.size,1))
 
-    fig11(E,Lambda)
+    Lambda_m = lambda_comp(chi,E,isotropic=False)
+    Lambda_i = lambda_comp(chi,E,isotropic=True)
+
+    fig11(E,chi,Lambda_m,Lambda_i)
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
