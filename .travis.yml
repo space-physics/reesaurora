@@ -29,7 +29,7 @@ install:
     - if [[ ${TRAVIS_PYTHON_VERSION::1} -eq 2 ]]; then
          pip -q install coveralls;
       fi
-    - conda install --yes --quiet numpy
+    - conda install --yes --quiet numpy scipy=0.16.1
     - python setup.py develop
 
 script:
