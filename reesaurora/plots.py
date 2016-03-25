@@ -1,4 +1,4 @@
-from matplotlib.pyplot import figure
+from matplotlib.pyplot import figure,subplots
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import MultipleLocator
 
@@ -31,11 +31,20 @@ def plotA(q,ttxt,vlim):
     ax.set_xlabel('Energy Deposition')
     _doax(ax)
 
-def fig11(E,Lambda):
+def fig11(E,chi,Lambda_m,Lambda_i): #from Sergienko & Ivanov 1993
     # Lambda: Nenergy x Nalt
 
-    ax = figure().gca()
-    for e,l in zip(E,Lambda):
-        ax.plot(l,label=str(e))
-    ax.set_title('$\lambda$')
-    ax.legend()
+    def f11(Lambda,ax,ttxt):
+        for e,x,l in zip(E,chi,Lambda):
+            ax.plot(x,l,label=str(e))
+        ax.set_title('$\lambda$ '+ttxt)
+        ax.set_xlabel('Distance $\chi$')
+        ax.legend()
+
+    fg,axs = subplots(1,2,sharey=True)
+    axs[0].set_ylabel('Function of Dissipation')
+
+    f11(Lambda_m,axs[0],'field-aligned flux')
+
+    f11(Lambda_i,axs[1],'isotropic flux')
+

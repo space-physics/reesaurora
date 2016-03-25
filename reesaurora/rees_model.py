@@ -81,7 +81,7 @@ def ionization_profile_from_flux(E,dens,isotropic):
     for i,(e,d) in enumerate(zip(E,dE)):
         Ebins = linspace(e,e+d,20) #make a subset of fine resolution energy bins within bigger  energy bins
         #for isotropic or field aligned electron beams
-        Am,Lambda = energy_deg(Ebins,isotropic,dens) # Nsubenergy x Naltitude
+        Am = energy_deg(Ebins,isotropic,dens) # Nsubenergy x Naltitude
 
         q= Am.sum(axis=0) #sum over the interim energy sub-bins
         q *= (Partitioning/E_cost_ion).sum(axis=1) #effect of ion chemistry at each altitude
@@ -118,7 +118,7 @@ def energy_deg(E,isotropic,dens):
     Am[0,:] *= D_en[0]/2.
     Am[-1,:]*= D_en[-1]/2.
     Am[1:-2,:] *= (D_en[1:-2]+D_en[0:-3])[:,None]/2.
-    return Am,Lambda
+    return Am
 
 def Pat_range(E,isotropic):
     pr= 1.64e-6 if isotropic else 2.16e-6
