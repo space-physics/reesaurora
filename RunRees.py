@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
+
 from dateutil.parser import parse
-from numpy import array,arange,tile
+from numpy import array,arange,tile,logspace
 from matplotlib.pyplot import show
 import seaborn as sns
 sns.color_palette(sns.color_palette("cubehelix"))
@@ -8,7 +9,7 @@ sns.set(context='talk', style='whitegrid',
         rc={'image.cmap': 'cubehelix_r'}) #for contour
 #
 from reesaurora.rees_model import reesiono,loadaltenergrid,lambda_comp
-from reesaurora.plots import fig11,plotA
+from reesaurora.plots import fig11, fig12, plotA
 from gridaurora.writeeigen import writeeigen
 from gridaurora.solarangle import solarzenithangle
 #
@@ -63,10 +64,20 @@ def makefig11():
     #Am,Lambda,chi = energy_deg(E,isotropic,dens)
     chi = tile(arange(0,3,0.01),(E.size,1))
 
-    Lambda_m = lambda_comp(chi,E,isotropic=False)
-    Lambda_i = lambda_comp(chi,E,isotropic=True)
+    Lambda_m = lambda_comp(chi,E,isotropic=False)[0]
+    Lambda_i = lambda_comp(chi,E,isotropic=True)[0]
 
     fig11(E,chi,Lambda_m,Lambda_i)
+
+def makefig12():
+#%% make figure 12
+    chi = float('nan') #not used here
+
+    E = logspace(1.69,4,200)
+    C_m = lambda_comp(chi,E,isotropic=False)[1]
+    C_i = lambda_comp(chi,E,isotropic=True)[1]
+
+    fig12(E,C_m,C_i)
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
@@ -82,11 +93,12 @@ if __name__ == '__main__':
 
     t = parse(p.simtime)
 #%%
-    runrees(t,p.latlon[0],p.latlon[1], p.isotropic,
-            p.outfn,p.minalt,p.nalt,p.vlim)
+    runrees(t,p.latlon[0],p.latlon[1], p.isotropic,  p.outfn,p.minalt,p.nalt,p.vlim)
 
     print('solar zenith angle  {:.1f} '.format(solarzenithangle(p.simtime,p.latlon[0],p.latlon[1],0.)[0]))
 
     makefig11()
+
+    makefig12()
 
     show()

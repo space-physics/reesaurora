@@ -34,17 +34,50 @@ def plotA(q,ttxt,vlim):
 def fig11(E,chi,Lambda_m,Lambda_i): #from Sergienko & Ivanov 1993
     # Lambda: Nenergy x Nalt
 
-    def f11(Lambda,ax,ttxt):
+    def _f11(Lambda,ax,ttxt):
         for e,x,l in zip(E,chi,Lambda):
             ax.plot(x,l,label=str(e))
         ax.set_title('$\lambda$ '+ttxt)
         ax.set_xlabel('Distance $\chi$')
         ax.legend()
 
-    fg,axs = subplots(1,2,sharey=True)
+    fg,axs = subplots(1,2,sharey=True,num=11)
     axs[0].set_ylabel('Function of Dissipation')
 
-    f11(Lambda_m,axs[0],'field-aligned flux')
+    _f11(Lambda_m,axs[0],'field-aligned flux')
 
-    f11(Lambda_i,axs[1],'isotropic flux')
+    _f11(Lambda_i,axs[1],'isotropic flux')
+
+def fig12(E,Cmono,Ciso):
+    """
+    Energy deposition fitted curves
+    """
+    def f12(ax,C,E):
+        for c,l in zip(C,('C1','C2','C3','C4')):
+            ax.plot(E,c,label=l)
+        ax.legend()
+        ax.grid(which='both')
+        ax.set_ylabel('fitting parameter')
+        ax.set_xscale('log')
+        ax.grid(True,which='both')
+        ax.legend()
+        ax.autoscale(True,tight=True, axis='x')
+
+    fg,axs = subplots(2,1,sharex=True,num=12)
+
+    ax=axs[0]
+    f12(ax,Cmono,E)
+    ax.set_title('Monodirectional')
+#%%
+    ax = axs[1]
+    f12(ax,Ciso,E)
+    ax.set_xlabel('Energy [eV]')
+    ax.set_title('Isotropic Downward Hemisphere')
+
+
+
+
+
+
+
 

@@ -10,7 +10,7 @@ from dateutil.parser import parse
 from datetime import datetime
 from pandas import Panel
 from numpy import (gradient,array,linspace,zeros,diff,append,empty,arange,log10,exp,nan,
-                   logspace,atleast_1d,ndarray)
+                   logspace,atleast_1d,ndarray,copy)
 from scipy.interpolate import interp1d
 #
 from gridaurora.ztanh import setupz
@@ -112,7 +112,7 @@ def energy_deg(E,isotropic,dens):
 
     chi = zetm / r[:,None]
 
-    Lambda = lambda_comp(chi,E,isotropic)
+    Lambda = lambda_comp(chi,E,isotropic)[0]
 
     Am = atmp * Lambda * E[:,None] * (1-alb[:,None])/r[:,None]
 
@@ -160,6 +160,9 @@ def lambda_comp(chi,E,isotropic):
             P = h['monodirectional/C']
             LE =h['monodirectional/E']
             Emax = 5000.
+#%% more robust way to handle too-high values, like paper appears to do
+        E = copy(E)
+        E[E>Emax] = Emax
 #%% interpolate  -- use NaN as a sentinal value
         fC=interp1d(LE,P,kind='linear',axis=1,bounds_error=False,fill_value=nan)
         C = fC(log10(E))
@@ -167,15 +170,10 @@ def lambda_comp(chi,E,isotropic):
         the section below finally implements Eqn. A2 from the Sergienko & Ivanov 1993 paper.
         We create a plot mimicing Fig. 11 from this paper.
         """
-#%% low energy
         lam = ((C[0,:][:,None]*chi + C[1,:][:,None]) *
                 exp(C[2,:][:,None]*chi**2 + C[3,:][:,None]*chi))
-#%% high energy
-        badind = E>Emax
-        lam[badind] = ((P[0,-1]*chi[badind] + P[1,-1]) *
-                       exp(P[2,-1]*chi[badind]**2 + P[3,-1]*chi[badind]))
 
-    return lam
+    return lam,C
 
 def partition(dens,ki):
     P = ki[[0,2,1]]*dens[['N2','O','O2']].values
