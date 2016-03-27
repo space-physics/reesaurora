@@ -6,6 +6,11 @@ import subprocess
 with open('README.rst','r') as f:
   	long_description = f.read()
 
+try:
+    subprocess.run(['conda','install','--yes','--quiet','--file','requirements.txt'])
+except Exception as e:
+    print('you will need to install packages in requirements.txt  {}'.format(e))
+
 setup(name='reesaurora',
       version='0.1',
 	  description='Rees-Sergienko-Ivanov auroral model',
@@ -17,8 +22,3 @@ setup(name='reesaurora',
 	  install_requires=['msise00','gridaurora'],
       packages=['reesaurora'],
 	  )
-
-try:
-    subprocess.call(['conda','install','--yes','--quiet','--file','requirements.txt'],shell=False) #don't use os.environ
-except Exception as e:
-    print('you will need to install packages in requirements.txt  {}'.format(e))
