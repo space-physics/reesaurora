@@ -5,6 +5,7 @@
    a massively speeded up implementation after the AIDA_TOOLS package by Gustavsson, Brandstrom, et al
 """
 import logging
+import h5py
 from dateutil.parser import parse
 from datetime import datetime
 from pandas import Panel
@@ -142,53 +143,37 @@ def lambda_comp(chi,E,isotropic):
     """
     Implements Eqn. A2 from Sergienko & Ivanov 1993
 
-    interpolated over energies from 48.9 eV to 5012 eV
-    for field-aligned precipitation
+    field-aligned monodirectional: interpolated over energies from 48.9 eV to 5012 eV
 
-    over 48.9ev to 1000 eV for isotropic precipitation
-    """
-#%% field-aligned
-    logE_m= append(1.69,arange(1.8,3.7+0.1,0.1))
-    Param_m =array(
-        [[1.43,1.51,1.58,1.62,1.51,1.54,1.18,1.02, 0.85, 0.69, 0.52,0.35,0.21,0.104,0.065,0.05,0.04,0.03,0.03, 0.025,0.021],
-         [0.83,0.77,0.72,0.67,0.63,0.59,0.56,0.525,0.495,0.465,0.44,0.42,0.40,0.386,0.37, 0.36,0.35,0.34,0.335,0.325,0.32],
-         [-0.025,-0.030, -0.040, -0.067, -0.105, -0.155, -0.210, -0.275, -0.36, -0.445, -0.51,-0.61, -0.69, -0.77, -0.83, -0.865, -0.90,-0.92, -0.935, -0.958, -0.96],
-         [-1.67,-1.65,-1.62,-1.56,-1.46,-1.35,-1.20,-0.98,-0.70,-0.37,-0.063,0.39,0.62,0.92,1.11,1.25,1.36,1.44,1.50,1.55,1.56]]
-         )
-#%% isotropic
-    """
-        interpolated over energies from 48.9 eV to 1000 eV
-    """
-    logE_i=append(1.69, arange(1.8,3.0+0.1,0.1))
-    Param_i =array(
-        [[0.041, 0.051, 0.0615, 0.071, 0.081, 0.09, 0.099, 0.1075, 0.116, 0.113, 0.13, 0.136, 0.139, 0.142],
-         [1.07, 1.01, 0.965, 0.9, 0.845, 0.805, 0.77, 0.735, 0.71, 0.69, 0.67, 0.665, 0.66, 0.657],
-         [-0.064, -0.1, -0.132, -0.171, -0.2, -0.221, -0.238, -0.252, -0.261, -0.267, -0.271, -0.274, -0.276, -0.277],
-         [-1.054, -0.95, -0.845, -0.72, -0.63, -0.54, -0.475, -0.425, -0.38, -0.345, -0.319, -0.295, -0.28, -0.268]]
-         )
+    Isotropic: interpolated over 48.9ev to 1000 eV
 
-    logE=log10(E)
+    "Param_m" and "Param_i" are from Table 6 of Sergienko & Ivanov 1993
 
-    if isotropic:
-        P = Param_i
-        LE = logE_i
-        Emax = 1000.
-    else:
-        P = Param_m
-        LE = logE_m
-        Emax = 5000.
-#%% interpolate
-    fC=interp1d(LE,P,kind='linear',axis=1,bounds_error=False,fill_value=nan)
-    C = fC(logE)
+    """
+    with h5py.File('data/SergienkoIvanov.h5','r',libver='latest') as h:
+#%% choose isotropic or monodirectional
+        if isotropic:
+            P = h['isotropic/C']
+            LE =h['isotropic/E']
+            Emax = 1000.
+        else:
+            P = h['monodirectional/C']
+            LE =h['monodirectional/E']
+            Emax = 5000.
+#%% interpolate  -- use NaN as a sentinal value
+        fC=interp1d(LE,P,kind='linear',axis=1,bounds_error=False,fill_value=nan)
+        C = fC(log10(E))
+        """
+        the section below finally implements Eqn. A2 from the Sergienko & Ivanov 1993 paper.
+        We create a plot mimicing Fig. 11 from this paper.
+        """
 #%% low energy
-    lam = ((C[0,:][:,None]*chi + C[1,:][:,None]) *
-            exp(C[2,:][:,None]*chi**2 + C[3,:][:,None]*chi))
+        lam = ((C[0,:][:,None]*chi + C[1,:][:,None]) *
+                exp(C[2,:][:,None]*chi**2 + C[3,:][:,None]*chi))
 #%% high energy
-    badind = E>Emax
-    lam[badind] = (
-                   (P[0,-1]*chi[badind] + P[1,-1]) *
-                   exp(P[2,-1]*chi[badind]**2 + P[3,-1]*chi[badind])
-                   )
+        badind = E>Emax
+        lam[badind] = ((P[0,-1]*chi[badind] + P[1,-1]) *
+                       exp(P[2,-1]*chi[badind]**2 + P[3,-1]*chi[badind]))
 
     return lam
 
