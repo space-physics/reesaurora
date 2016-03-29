@@ -5,11 +5,11 @@ from numpy import array,arange,tile,logspace
 from matplotlib.pyplot import show
 import seaborn as sns
 sns.color_palette(sns.color_palette("cubehelix"))
-sns.set(context='talk', style='whitegrid',
+sns.set(context='talk', style='whitegrid',font_scale=1.5,
         rc={'image.cmap': 'cubehelix_r'}) #for contour
 #
-from reesaurora.rees_model import reesiono,loadaltenergrid,lambda_comp
-from reesaurora.plots import fig11, fig12, plotA
+from reesaurora.rees_model import reesiono,loadaltenergrid,lambda_comp,albedo,PitchAngle_range
+from reesaurora.plots import fig11, fig12, fig13, plotA
 from gridaurora.writeeigen import writeeigen
 from gridaurora.solarangle import solarzenithangle
 #
@@ -79,6 +79,18 @@ def makefig12():
 
     fig12(E,C_m,C_i)
 
+def makefig13():
+    # albedo plots
+    E = logspace(1.69,4,200)
+
+    af_m = albedo(E,isotropic=False)
+    af_i = albedo(E,isotropic=True)
+
+    rng_m = PitchAngle_range(E,isotropic=False)
+    rng_i = PitchAngle_range(E,isotropic=True)
+
+    fig13(E,af_m,af_i,rng_m,rng_i)
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
     p = ArgumentParser(description='rees model of excitation rates for the aurora')
@@ -100,5 +112,7 @@ if __name__ == '__main__':
     makefig11()
 
     makefig12()
+
+    makefig13()
 
     show()

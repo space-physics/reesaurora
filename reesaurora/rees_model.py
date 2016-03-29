@@ -108,7 +108,7 @@ def energy_deg(E,isotropic,dens):
 
     Am = zeros((E.size,N_alt0))
     D_en = gradient(E)
-    r = Pat_range(E,isotropic)
+    r = PitchAngle_range(E,isotropic)
 
     chi = zetm / r[:,None]
 
@@ -121,25 +121,45 @@ def energy_deg(E,isotropic,dens):
     Am[1:-2,:] *= (D_en[1:-2]+D_en[0:-3])[:,None]/2.
     return Am
 
-def Pat_range(E,isotropic):
-    pr= 1.64e-6 if isotropic else 2.16e-6
-    return pr * (E/1e3)**1.67 * (1 + 9.48e-2 * E**-1.57)
+def PitchAngle_range(E,isotropic):
+    """
+    Eqn A3 & Table 7 from Sergienko & Ivanov 1993
+    Note E is keV in Eqn A3, hence the divide by 1000
 
-def albedo(E,isotropic):
-    isotropic = int(isotropic)
-    logE_p=append(1.69, arange(1.8,3.7+0.1,0.1))
-    Param=array(
-      [[0.352, 0.344, 0.334, 0.320, 0.300, 0.280, 0.260, 0.238, 0.218, 0.198, 0.180, 0.160, 0.143, 0.127, 0.119, 0.113, 0.108, 0.104, 0.102, 0.101, 0.100],
-       [0.500, 0.492, 0.484, 0.473, 0.463, 0.453, 0.443, 0.433, 0.423, 0.413, 0.403, 0.395, 0.388, 0.379, 0.378, 0.377, 0.377, 0.377, 0.377, 0.377, 0.377]])
-    logE=log10(E)
+    output:
+    range(E) [g/cm^2]
+    """
+    kE = E/1000.
 
-    falb=interp1d(logE_p,Param[isotropic,:],kind='linear',bounds_error=False,fill_value=nan)
-    alb = falb(logE)
-    alb[logE>logE_p[-1]] = Param[isotropic,-1]
+    B2 = 9.48e-2
+    B3 = -1.57
+
+    # paper says this, but doesn't match Fig. 13. Bjorn had what's used.
+    B1=1.804e-6 if isotropic else 2.16e-6
+
+    #B1 = 1.64e-6 if isotropic else 2.16e-6
+
+    return B1*kE**1.67 * (1. + B2*kE**B3)
+
+    #pr= 1.64e-6 if isotropic else 2.16e-6
+    #return pr * (E/1e3)**1.67 * (1 + 9.48e-2 * E**-1.57)
+
+def albedo(E,isotropic,fn='data/SergienkoIvanov.h5'):
+
+    with h5py.File(fn,'r',libver='latest') as h:
+        albedoflux = h['/albedo/flux'][int(isotropic),:]
+        LE = h['/albedo/E']
+
+        Emax = 10**LE[-1]
+        E = copy(E)
+        E[E>Emax] = Emax
+
+        falb=interp1d(LE, albedoflux, kind='linear',bounds_error=False,fill_value=nan)
+        alb = falb(log10(E))
 
     return alb
 
-def lambda_comp(chi,E,isotropic):
+def lambda_comp(chi,E,isotropic,fn='data/SergienkoIvanov.h5'):
     """
     Implements Eqn. A2 from Sergienko & Ivanov 1993
 
@@ -150,17 +170,16 @@ def lambda_comp(chi,E,isotropic):
     "Param_m" and "Param_i" are from Table 6 of Sergienko & Ivanov 1993
 
     """
-    with h5py.File('data/SergienkoIvanov.h5','r',libver='latest') as h:
+    with h5py.File(str(fn),'r',libver='latest') as h:
 #%% choose isotropic or monodirectional
         if isotropic:
             P = h['isotropic/C']
             LE =h['isotropic/E']
-            Emax = 1000.
         else:
             P = h['monodirectional/C']
             LE =h['monodirectional/E']
-            Emax = 5000.
 #%% more robust way to handle too-high values, like paper appears to do
+        Emax = 10**LE[-1]
         E = copy(E)
         E[E>Emax] = Emax
 #%% interpolate  -- use NaN as a sentinal value

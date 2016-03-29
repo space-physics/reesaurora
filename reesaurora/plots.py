@@ -74,10 +74,26 @@ def fig12(E,Cmono,Ciso):
     ax.set_xlabel('Energy [eV]')
     ax.set_title('Isotropic Downward Hemisphere')
 
+def fig13(E,afmono,afiso,rngmono,rngiso):
 
-
-
-
-
-
-
+    fg,axs = subplots(2,1,sharex=True,num=13)
+#%% range
+    ax = axs[0]
+    ax.plot(E,rngmono,label='monodirectional')
+    ax.plot(E,rngiso,label='isotropic')
+    ax.set_xlabel('Energy [eV]')
+    ax.set_ylabel('Range [g/cm^2]')
+    ax.legend(loc='best')
+    ax.autoscale(True,tight=True,axis='x')
+    ax.set_yscale('log')
+    ax.set_ylim(1e-7,1e-4)
+    ax.grid(which='both')
+#%% albedo
+    ax = axs[1]
+    ax.plot(E,afmono,label='monodirectional')
+    ax.plot(E,afiso,label='isotropic')
+    ax.set_xlabel('Energy [eV]')
+    ax.set_ylabel('Albedo-flux')
+    ax.set_xscale('log')
+    ax.legend(loc='best')
+    ax.autoscale(True,tight=True,axis='x')
