@@ -20,7 +20,10 @@ def test_reesiono():
     assert Q.items.to_pydatetime()[0] == datetime(2013,3,31,12,tzinfo=UTC)
 
     Qv = Q.values
-    assert_allclose([Qv[0,23,58],Qv[0,53,88]],[9.0995363363765226e-06,2.1067761704173373e-07])
+    print(Qv[0,23,58])
+    print(Qv[0,53,88])
+    assert_allclose([Qv[0,23,58],Qv[0,53,88]],
+                    [8.21574874553e-06,2.1061177623e-07])
 
 if __name__ == '__main__':
     run_module_suite()
