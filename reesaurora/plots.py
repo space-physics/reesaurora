@@ -2,34 +2,34 @@ from matplotlib.pyplot import figure,subplots
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import MultipleLocator
 
-def plotA(q,ttxt,vlim):
-    E=q.major_axis.values
-    z=q.minor_axis.values
-    Q=q.values.squeeze().T
+def plotA(Q,ttxt,vlim):
+    E=Q.energy
+    z=Q.altkm
+    Q=Q[0] #TODO first time only
 #%%
-    def _doax(ax):
+    def _doax(ax,ttxt):
        ax.yaxis.set_major_locator(MultipleLocator(100))
        ax.yaxis.set_minor_locator(MultipleLocator(20))
        ax.set_xscale('log')
        ax.set_ylabel('altitude [km]')
        ax.set_title(ttxt)
 
-    fg = figure()
-    ax = fg.gca()
-    hi = ax.pcolormesh(E,z,Q,
-                       vmin=vlim[0],vmax=vlim[1],
-                       norm=LogNorm())
-    c=fg.colorbar(hi,ax=ax)
-    c.set_label('Volume Production Rate')
-    ax.set_xlabel('beam energy [eV]')
-    ax.autoscale(True,tight=True) #fill axes
-    _doax(ax)
+    fg,axs = subplots(1,Q.species.size)
+    for ax,Qs,l in zip(axs,Q.values,Q.species):
+        hi = ax.pcolormesh(E,z,Qs,
+                           vmin=vlim[0],vmax=vlim[1],
+                           norm=LogNorm())
+        c=fg.colorbar(hi,ax=ax)
+        c.set_label('Volume Production Rate')
+        ax.set_xlabel('beam energy [eV]')
+        ax.autoscale(True,tight=True) #fill axes
+        _doax(ax,ttxt + ' ' + str(l))
 #%% same data, differnt plot
-    ax = figure().gca()
-    ax.plot(Q,z)
-    ax.set_xlim(vlim)
-    ax.set_xlabel('Energy Deposition')
-    _doax(ax)
+#    ax = figure().gca()
+#    ax.plot(Q,z)
+#    ax.set_xlim(vlim)
+#    ax.set_xlabel('Energy Deposition')
+#    _doax(ax)
 
 def fig11(E,chi,Lambda_m,Lambda_i): #from Sergienko & Ivanov 1993
     # Lambda: Nenergy x Nalt
