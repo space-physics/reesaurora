@@ -40,12 +40,12 @@ def runrees(t,glat,glon,isotropic,outfn,minalt,nalt,vlim):
     """
     z,E = loadaltenergrid(minalt,nalt)
 
-    q = reesiono(t, z, E, glat, glon,isotropic)
+    Q = reesiono(t, z, E, glat, glon,isotropic)
 
 #%% outputs
-    writeeigen(outfn,E,t,z,prates=q,tezs=None,latlon=(glat,glon))
+    writeeigen(outfn,E,t,z,prates=Q,tezs=None,latlon=(glat,glon))
 
-    plotA(q,'Volume Production Rate {}  {} {}'.format(t,glat,glon),vlim)
+    plotA(Q,'Volume Production Rate {}  {} {}'.format(t,glat,glon),vlim)
 
 
 def makefig11():

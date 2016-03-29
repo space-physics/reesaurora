@@ -8,8 +8,8 @@ import logging
 import h5py
 from dateutil.parser import parse
 from datetime import datetime
-from pandas import Panel
-from numpy import (gradient,array,linspace,zeros,diff,append,empty,arange,log10,exp,nan,
+from xarray import DataArray
+from numpy import (gradient,array,linspace,zeros,diff,empty,append,arange,log10,exp,nan,
                    logspace,atleast_1d,ndarray,copy)
 from scipy.interpolate import interp1d
 #
@@ -22,6 +22,7 @@ except ImportError as e:
     logging.error(e)
 
 def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool):
+    species = ['N2','O2','O']
     #other assertions covered inside modules
     assert isinstance(isotropic,bool)
 
@@ -35,9 +36,9 @@ def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool):
     else:
         logging.debug('field-aligned pitch angle flux')
 
-    qPanel = Panel(items=T,
-                   major_axis=E,
-                   minor_axis=altkm)
+    Qt = DataArray(data=empty((T.size,len(species),altkm.size,E.size)),
+                   coords=[T,species,altkm,E],
+                   dims=['time','species','altkm','energy'])
 #%% loop
     for t in T:
         f107Ap=readmonthlyApF107(t)
@@ -49,18 +50,16 @@ def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool):
                              mass=48.,
                              tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)) #leave mass=48. !
 
-        q = ionization_profile_from_flux(E,dens,isotropic)
-        qPanel.loc[t,:,:] = q.T
+        Q = ionization_profile_from_flux(E,dens,isotropic,species)
+        Qt.loc[t,...] = Q
 
-    return qPanel
+    return Qt
 
-#TODO check that "isotropic" is handled consistently with original code
-def ionization_profile_from_flux(E,dens,isotropic):
+def ionization_profile_from_flux(E,dens,isotropic,species):
     """
     simple model for volume emission as function of altitude.
     After Sergienko and Ivanov 1993 and Gustavsson AIDA_TOOLs
     """
-
     if ((E<1e2) | (E>1e4)).any():
         logging.warning('Sergienko & Ivanov 1993 covered E \in [100,10000] eV')
 
@@ -69,32 +68,38 @@ def ionization_profile_from_flux(E,dens,isotropic):
 
 #%% Table 1 Sergienko & Ivanov 1993, rightmost column
     # mean energy per ion-electron pair
-    E_cost_ion = array([36.8,26.8,28.2]) # N_2, O, O_2
-
-    ki = array([1, 0.7, 0.4])
+    E_cost_ion = {'N2':36.8,'O2':28.2,'O':26.8}
+#%% Eqn 7
+    k = {'N2':1.,'O2':0.7,'O':0.4}
 
     dE = diff(E); dE = append(dE,dE[-1])
 
-    Partitioning = partition(dens,ki)
-
+    Peps = partition(dens,k,E_cost_ion) #Nalt x Nspecies
 #%% Calculate the energy deposition as a function of altitude
-    qE = empty((dens.shape[0],E.size)) # Nalt x Nenergy
+    """
+    Implement through Eqn 8.
+    Q: per species per state
+    """
+    Q = DataArray(data = empty((len(species),dens.shape[0],E.size)),
+                  coords=[species, dens.index, E],
+                  dims=['species','altkm','energy']) # Nalt x Nenergy x Nspecies
+
     for i,(e,d) in enumerate(zip(E,dE)):
         Ebins = linspace(e,e+d,20) #make a subset of fine resolution energy bins within bigger  energy bins
         #for isotropic or field aligned electron beams
         Am = energy_deg(Ebins,isotropic,dens) # Nsubenergy x Naltitude
 
-        q= Am.sum(axis=0) #sum over the interim energy sub-bins
-        q *= (Partitioning/E_cost_ion).sum(axis=1) #effect of ion chemistry at each altitude
-        qE[:,i] = q
-    return qE
+        W = Am.sum(axis=0) #integrate over the interim energy sub-bins
+
+        for s in species:
+            Q.loc[s,:,e] = W * Peps.loc[:,s] #effect of ion chemistry at each altitude
+
+    return Q
 
 def energy_deg(E,isotropic,dens):
     """
     energy degradation of precipitating electrons
     """
-    #atmp = DataFrame(index=dens.index)
-    #atmp[['N2','O','O2']] = dens[['N2','O','O2']]/1e6
     atmp = dens['Total'].values/1e3
 
     N_alt0 = atmp.shape[0]
@@ -194,9 +199,39 @@ def lambda_comp(chi,E,isotropic,fn='data/SergienkoIvanov.h5'):
 
     return lam,C
 
-def partition(dens,ki):
-    P = ki[[0,2,1]]*dens[['N2','O','O2']].values
-    return P / P.sum(axis=1)[:,None]
+def partition(dens,k,cost):
+    """
+    Implement Eqn 7 Sergienko 1993
+
+    N: density vs. altitude for each species
+    k: correction factors vs. Monte Carlo for Sergienko 1993
+    cost: energization cost
+
+    output:
+    P_i(h)
+    """
+    species = ['N2','O','O2']
+
+    N = dens[species]
+
+    num=DataArray(data=empty((N.shape[0],len(species))),
+                  coords=[N.index,species],
+                  dims=['altkm','species'])
+    for i in species:
+        num.loc[:,i] = k[i]*N[i]
+
+    den=num.sum(axis=1)
+
+    P = num.copy()
+    for i in species:
+        P.loc[:,i] = num.loc[:,i]/den
+#%% energization cost
+
+    Peps = num.copy()
+    for i in species:
+        Peps.loc[:,i] = P.loc[:,i] / cost[i]
+
+    return Peps
 
 def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     """
