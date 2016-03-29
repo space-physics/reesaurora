@@ -63,7 +63,7 @@ def ionization_profile_from_flux(E,dens,isotropic,species):
     if ((E<1e2) | (E>1e4)).any():
         logging.warning('Sergienko & Ivanov 1993 covered E \in [100,10000] eV')
 
-    if (dens.index>700.).any():
+    if (dens.index>500.).any():
         logging.warning('Sergienko & Ivanov 1993 assumed electron source was at altitude 700km.')
 
 #%% Table 1 Sergienko & Ivanov 1993, rightmost column
@@ -250,11 +250,11 @@ def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     else:
         z = setupz(Nalt,minalt,1.5,11.1475)
 
-    z = z[z <= 1000] #keeps original spacing, but only auroral altitudes
+    z = z[z <= 500] #keeps original spacing, but only auroral altitudes
 #%% energy of beams
     if special_grid.lower()=='transcar':
         E = logspace(1.72,4.25,num=33,base=10)
     else:
-        E = logspace(1.72,6.,num=81,base=10)
+        E = logspace(1.69,4.,num=81,base=10)
 
     return z,E

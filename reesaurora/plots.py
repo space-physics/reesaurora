@@ -11,11 +11,11 @@ def plotA(Q,ttxt,vlim):
        ax.yaxis.set_major_locator(MultipleLocator(100))
        ax.yaxis.set_minor_locator(MultipleLocator(20))
        ax.set_xscale('log')
-       ax.set_ylabel('altitude [km]')
        ax.set_title(ttxt)
 
-    fg,axs = subplots(1,Q.species.size)
-    for ax,Qs,l in zip(axs,Q.values,Q.species):
+    fg,axs = subplots(1,Q.species.size,sharey=True)
+    fg.suptitle(ttxt)
+    for ax,Qs,l in zip(axs,Q.values,Q.species.values):
         hi = ax.pcolormesh(E,z,Qs,
                            vmin=vlim[0],vmax=vlim[1],
                            norm=LogNorm())
@@ -23,7 +23,9 @@ def plotA(Q,ttxt,vlim):
         c.set_label('Volume Production Rate')
         ax.set_xlabel('beam energy [eV]')
         ax.autoscale(True,tight=True) #fill axes
-        _doax(ax,ttxt + ' ' + str(l))
+        _doax(ax,str(l))
+
+    axs[0].set_ylabel('altitude [km]')
 #%% same data, differnt plot
 #    ax = figure().gca()
 #    ax.plot(Q,z)
