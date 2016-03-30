@@ -11,7 +11,7 @@ tdir  = Path(__file__).parents[1]
 def test_reesiono():
     minalt=90; nalt=286
     isotropic=False
-    glat=65; glon=-148
+    glat=65.; glon=-148.
     t = '2013-03-31T12:00:00Z' #datetime(2013,3,31,12,tzinfo=UTC)
 #%%
     z,E = loadaltenergrid(minalt,nalt) #altitude grid, Energy Grid
