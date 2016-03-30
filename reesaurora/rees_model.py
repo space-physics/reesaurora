@@ -63,7 +63,7 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn):
     if ((E<50) | (E>1e4)).any():
         logging.warning('Sergienko & Ivanov 1993 covered E \in [100,10000] eV')
 
-    if (dens.index>500.).any():
+    if (dens.altkm>500.).any():
         logging.warning('Sergienko & Ivanov 1993 assumed electron source was at altitude 700km.')
 
 #%% Table 1 Sergienko & Ivanov 1993, rightmost column
@@ -81,7 +81,7 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn):
     Q: per species per state
     """
     Q = DataArray(data = empty((len(species),dens.shape[0],E.size)),
-                  coords=[species, dens.index, E],
+                  coords=[species, dens.altkm, E],
                   dims=['species','altkm','energy']) # Nalt x Nenergy x Nspecies
 
     for i,(e,d) in enumerate(zip(E,dE)):
@@ -100,11 +100,11 @@ def energy_deg(E,isotropic,dens,datfn):
     """
     energy degradation of precipitating electrons
     """
-    atmp = dens['Total'].values/1e3
+    atmp = dens.loc[:,'Total'].values/1e3
 
     N_alt0 = atmp.shape[0]
     zetm = zeros(N_alt0)
-    dH = gradient(dens.index)
+    dH = gradient(dens.altkm)
     for i in range(N_alt0-1,0,-1): #careful with these indices!
         dzetm = (atmp[i] +atmp[i-1])*dH[i-1]*1e5/2
         zetm[i-1] = zetm[i] + dzetm
@@ -212,13 +212,13 @@ def partition(dens,k,cost):
     """
     species = ['N2','O','O2']
 
-    N = dens[species]
+    N = dens.loc[:,species]
 
     num=DataArray(data=empty((N.shape[0],len(species))),
-                  coords=[N.index,species],
+                  coords=[N.altkm,species],
                   dims=['altkm','species'])
     for i in species:
-        num.loc[:,i] = k[i]*N[i]
+        num.loc[:,i] = k[i]*N.loc[:,i]
 
     den=num.sum(axis=1)
 

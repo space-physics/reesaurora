@@ -95,7 +95,7 @@ if __name__ == '__main__':
     from argparse import ArgumentParser
     p = ArgumentParser(description='rees model of excitation rates for the aurora')
     p.add_argument('-t','--simtime',help='yyyy-mm-ddTHH:MM:SSZ time of sim',default='2013-01-01T12Z')
-    p.add_argument('-c','--latlon',help='geodetic latitude/longitude (deg)',type=float,nargs=2,default=(65,-148))
+    p.add_argument('-c','--latlon',help='geodetic latitude/longitude (deg)',type=float,nargs=2,default=(65.,-148.))
     p.add_argument('--minalt',help='minimum altitude in grid [km]',type=float,default=90)
     p.add_argument('--nalt',help='Number of points in altitude grid',type=int,default=286)
     p.add_argument('-o','--outfn',help='give hdf5 filename to save eigenprofile production')
