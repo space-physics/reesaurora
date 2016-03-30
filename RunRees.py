@@ -40,7 +40,7 @@ def runrees(t,glat,glon,isotropic,outfn,minalt,nalt,vlim):
     """
     z,E = loadaltenergrid(minalt,nalt)
 
-    Q = reesiono(t, z, E, glat, glon,isotropic)
+    Q = reesiono(t, z, E, glat, glon,isotropic,datfn='data/SergienkoIvanov.h5')
 
 #%% outputs
     writeeigen(outfn,E,t,z,prates=Q,tezs=None,latlon=(glat,glon))
@@ -48,7 +48,7 @@ def runrees(t,glat,glon,isotropic,outfn,minalt,nalt,vlim):
     plotA(Q,'Volume Production Rate {}  ({:.2f},{:.2f})'.format(t,glat,glon),vlim)
 
 
-def makefig11():
+def makefig11(datfn):
     from msise00.runmsis import rungtd1d
 
     z,E = loadaltenergrid(30.,200)
@@ -64,27 +64,27 @@ def makefig11():
     #Am,Lambda,chi = energy_deg(E,isotropic,dens)
     chi = tile(arange(0,3,0.01),(E.size,1))
 
-    Lambda_m = lambda_comp(chi,E,isotropic=False)[0]
-    Lambda_i = lambda_comp(chi,E,isotropic=True)[0]
+    Lambda_m = lambda_comp(chi,E,isotropic=False,fn=datfn)[0]
+    Lambda_i = lambda_comp(chi,E,isotropic=True,fn=datfn)[0]
 
     fig11(E,chi,Lambda_m,Lambda_i)
 
-def makefig12():
+def makefig12(datfn):
 #%% make figure 12
     chi = float('nan') #not used here
 
     E = logspace(1.69,4,200)
-    C_m = lambda_comp(chi,E,isotropic=False)[1]
-    C_i = lambda_comp(chi,E,isotropic=True)[1]
+    C_m = lambda_comp(chi,E,isotropic=False,fn=datfn)[1]
+    C_i = lambda_comp(chi,E,isotropic=True,fn=datfn)[1]
 
     fig12(E,C_m,C_i)
 
-def makefig13():
+def makefig13(datfn):
     # albedo plots
     E = logspace(1.69,4,200)
 
-    af_m = albedo(E,isotropic=False)
-    af_i = albedo(E,isotropic=True)
+    af_m = albedo(E,isotropic=False,fn=datfn)
+    af_i = albedo(E,isotropic=True,fn=datfn)
 
     rng_m = PitchAngle_range(E,isotropic=False)
     rng_i = PitchAngle_range(E,isotropic=True)
@@ -103,16 +103,18 @@ if __name__ == '__main__':
     p.add_argument('--vlim',help='plotting limits on energy dep and production plots',nargs=2,type=float,default=(1e-7,1))
     p = p.parse_args()
 
+    datfn='data/SergienkoIvanov.h5'
+
     t = parse(p.simtime)
 #%%
     runrees(t,p.latlon[0],p.latlon[1], p.isotropic,  p.outfn,p.minalt,p.nalt,p.vlim)
 
     print('solar zenith angle  {:.1f} '.format(solarzenithangle(p.simtime,p.latlon[0],p.latlon[1],0.)[0]))
 
-    makefig11()
+    makefig11(datfn)
 
-    makefig12()
+    makefig12(datfn)
 
-    makefig13()
+    makefig13(datfn)
 
     show()

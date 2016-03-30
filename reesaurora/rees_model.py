@@ -21,7 +21,7 @@ try:
 except ImportError as e:
     logging.error(e)
 
-def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool):
+def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,datfn):
     species = ['N2','O2','O']
     #other assertions covered inside modules
     assert isinstance(isotropic,bool)
@@ -50,17 +50,17 @@ def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool):
                              mass=48.,
                              tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)) #leave mass=48. !
 
-        Q = ionization_profile_from_flux(E,dens,isotropic,species)
+        Q = ionization_profile_from_flux(E,dens,isotropic,species,datfn)
         Qt.loc[t,...] = Q
 
     return Qt
 
-def ionization_profile_from_flux(E,dens,isotropic,species):
+def ionization_profile_from_flux(E,dens,isotropic,species,datfn):
     """
     simple model for volume emission as function of altitude.
     After Sergienko and Ivanov 1993 and Gustavsson AIDA_TOOLs
     """
-    if ((E<1e2) | (E>1e4)).any():
+    if ((E<50) | (E>1e4)).any():
         logging.warning('Sergienko & Ivanov 1993 covered E \in [100,10000] eV')
 
     if (dens.index>500.).any():
@@ -87,7 +87,7 @@ def ionization_profile_from_flux(E,dens,isotropic,species):
     for i,(e,d) in enumerate(zip(E,dE)):
         Ebins = linspace(e,e+d,20) #make a subset of fine resolution energy bins within bigger  energy bins
         #for isotropic or field aligned electron beams
-        Am = energy_deg(Ebins,isotropic,dens) # Nsubenergy x Naltitude
+        Am = energy_deg(Ebins,isotropic,dens,datfn) # Nsubenergy x Naltitude
 
         W = Am.sum(axis=0) #integrate over the interim energy sub-bins
 
@@ -96,7 +96,7 @@ def ionization_profile_from_flux(E,dens,isotropic,species):
 
     return Q
 
-def energy_deg(E,isotropic,dens):
+def energy_deg(E,isotropic,dens,datfn):
     """
     energy degradation of precipitating electrons
     """
@@ -109,7 +109,7 @@ def energy_deg(E,isotropic,dens):
         dzetm = (atmp[i] +atmp[i-1])*dH[i-1]*1e5/2
         zetm[i-1] = zetm[i] + dzetm
 
-    alb = albedo(E,isotropic)
+    alb = albedo(E,isotropic,datfn)
 
     Am = zeros((E.size,N_alt0))
     D_en = gradient(E)
@@ -117,7 +117,7 @@ def energy_deg(E,isotropic,dens):
 
     chi = zetm / r[:,None]
 
-    Lambda = lambda_comp(chi,E,isotropic)[0]
+    Lambda = lambda_comp(chi,E,isotropic,datfn)[0]
 
     Am = atmp * Lambda * E[:,None] * (1-alb[:,None])/r[:,None]
 
@@ -149,9 +149,9 @@ def PitchAngle_range(E,isotropic):
     #pr= 1.64e-6 if isotropic else 2.16e-6
     #return pr * (E/1e3)**1.67 * (1 + 9.48e-2 * E**-1.57)
 
-def albedo(E,isotropic,fn='data/SergienkoIvanov.h5'):
+def albedo(E,isotropic,fn):
 
-    with h5py.File(fn,'r',libver='latest') as h:
+    with h5py.File(str(fn),'r',libver='latest') as h:
         albedoflux = h['/albedo/flux'][int(isotropic),:]
         LE = h['/albedo/E']
 
@@ -164,7 +164,7 @@ def albedo(E,isotropic,fn='data/SergienkoIvanov.h5'):
 
     return alb
 
-def lambda_comp(chi,E,isotropic,fn='data/SergienkoIvanov.h5'):
+def lambda_comp(chi,E,isotropic,fn):
     """
     Implements Eqn. A2 from Sergienko & Ivanov 1993
 
