@@ -79,6 +79,9 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose):
     dE = diff(E); dE = append(dE,dE[-1])
 
     Peps = partition(dens,k,E_cost_ion) #Nalt x Nspecies
+
+    # NOTE kg m^-2 *10 = g cm^-2
+    rho = dens.loc[:,'Total'] * 10. # mass density of atmosphere [g cm^-3]
 #%% Calculate the energy deposition "loss" as a function of altitude
     """
     Implement through Eqn 8.
@@ -92,21 +95,24 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose):
         Ebins = linspace(e,e+d,20) #make a subset of fine resolution energy bins within bigger  energy bins
 
         #for isotropic or field aligned electron beams
-        # Eqn 6 integral
-        W = energy_deg(Ebins,isotropic,dens,datfn,verbose) # Nsubenergy x Naltitude
+        # Eqn 6,A1
+        W = energy_deg(Ebins,isotropic,rho,datfn,verbose) # Nsubenergy x Naltitude
 
+        #Eqn A4
         for s in species:
-            Q.loc[s,:,e] = W.loc[:,s] * Peps.loc[:,s] #effect of ion chemistry at each altitude
+            # we sum W across the subenergies (numerical integration to help large energy grid step size)
+            Q.loc[s,:,e] = Peps.loc[:,s] * rho * W.sum(axis=0) # production rate [cm^-3 s^-1] due to gas mass density impacts at each altitude
 
     return Q
 
-def energy_deg(E,isotropic,dens,datfn,verbose):
+def energy_deg(E,isotropic,rho,datfn,verbose):
     """
-    energy degradation of precipitating electrons -- kernel of Eqn 6
+    energy degradation of precipitating electrons -- kernel of Eqn A4,6 implementing A1
+    rho: MASS density g cm^-3
     """
-    # NOTE kg m^-2 *10 = g cm^-2
-    rho = dens.loc[:,'Total'].values * 10. # mass density of atmosphere [g cm^2]
-    z = dens.altkm.values
+
+    z = rho.altkm.values
+    #rho=rho.values #so Numpy can cope
 
     dE = gradient(E)
 
@@ -124,20 +130,13 @@ def energy_deg(E,isotropic,dens,datfn,verbose):
         else:
             Lambda_m=[Lambda[0,:]]; Lambda_i=None
         fig11([E[0]],[chi[0,:]],Lambda_m,Lambda_i,None)
-#%%  kernel of Eqn A4
-    W = DataArray(data=empty((z.size,len(species))),
-                  coords=[z,species],
-                  dims=['altkm','species'])
-    for s in species:
+#%%  Eqn A1
     #Nsubenergy x Nalt
-        Wks = rho * Lambda * E[:,None] * (1-alb[:,None]) / Rng[:,None]
+    W = Lambda * E[:,None] * (1-alb[:,None]) / Rng[:,None]
 
-        Wks[0,:] *= dE[0]/2. #lowest subenergy
-        Wks[-1,:]*= dE[-1]/2.
-        Wks[1:-2,:] *= (dE[1:-2] + dE[0:-3])[:,None] / 2.
-
-        # summed over subenergy bins
-        W.loc[:,s] = Wks.sum(axis=0)
+    W[0,:] *= dE[0]/2. #lowest subenergy
+    W[-1,:]*= dE[-1]/2.
+    W[1:-2,:] *= (dE[1:-2] + dE[0:-3])[:,None] / 2.
 
     return W
 

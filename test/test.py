@@ -15,15 +15,16 @@ def test_reesiono():
 #%%
     z,E = loadaltenergrid(minalt,nalt) #altitude grid, Energy Grid
 #%%
-    Q = reesiono(t,z,E,glat,glon,isotropic,datfn=tdir/'data/SergienkoIvanov.h5')
+    Q = reesiono(t,z,E,glat,glon,isotropic,datfn=tdir/'data/SergienkoIvanov.h5',verbose=0)
 #%%
     assert_allclose(Q.altkm.values,z)
     assert_allclose(Q.energy.values,E)
     assert Q.time[0] == datetime64(t),'times didnt match up'
 
     Qv = Q[0].sum('species')  # total production
+    #print([Qv[23,58],Qv[53,68]])
     assert_allclose([Qv[23,58],Qv[53,68]],
-                    [0.0007949280872816374,4.2094326282647114e-06])
+                    [5.3296717229489765,0.04200315631340597])
 
 if __name__ == '__main__':
     run_module_suite()
