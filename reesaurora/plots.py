@@ -35,7 +35,7 @@ def plotA(Q,ttxt,vlim):
 #    ax.set_xlabel('Energy Deposition')
 #    _doax(ax)
 
-def fig11(E,chi,Lambda_m,Lambda_i): #from Sergienko & Ivanov 1993
+def fig11(E,chi,Lambda_m,Lambda_i,fignum=11): #from Sergienko & Ivanov 1993
     # Lambda: Nenergy x Nalt
 
     def _f11(Lambda,ax,ttxt):
@@ -43,14 +43,17 @@ def fig11(E,chi,Lambda_m,Lambda_i): #from Sergienko & Ivanov 1993
             ax.plot(x,l,label=str(e))
         ax.set_title('$\lambda$ '+ttxt)
         ax.set_xlabel('Distance $\chi$')
+        ax.set_xlim(0,3)
         ax.legend()
 
-    fg,axs = subplots(1,2,sharey=True,num=11)
+    fg,axs = subplots(1,2,sharey=True,num=fignum)
     axs[0].set_ylabel('Function of Dissipation')
 
-    _f11(Lambda_m,axs[0],'field-aligned flux')
+    if Lambda_m is not None:
+        _f11(Lambda_m,axs[0],'field-aligned flux')
 
-    _f11(Lambda_i,axs[1],'isotropic flux')
+    if Lambda_i is not None:
+        _f11(Lambda_i,axs[1],'isotropic flux')
 
 def fig12(E,Cmono,Ciso):
     """

@@ -11,6 +11,7 @@ from datetime import datetime
 from xarray import DataArray
 from numpy import (gradient,array,linspace,zeros,diff,empty,append,log10,exp,nan,
                    logspace,atleast_1d,ndarray,copy)
+from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
 #
 from gridaurora.ztanh import setupz
@@ -21,9 +22,11 @@ try:
 except ImportError as e:
     logging.error(e)
 
+from .plots import fig11
+
 species =['N2','O','O2']
 
-def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,datfn):
+def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,verbose:int,datfn):
     #other assertions covered inside modules
     assert isinstance(isotropic,bool)
 
@@ -51,12 +54,12 @@ def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,datf
                              mass=48.,
                              tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)) #leave mass=48. !
 
-        Q = ionization_profile_from_flux(E,dens,isotropic,species,datfn)
+        Q = ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose)
         Qt.loc[t,...] = Q
 
     return Qt
 
-def ionization_profile_from_flux(E,dens,isotropic,species,datfn):
+def ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose):
     """
     simple model for volume emission as function of altitude.
     After Sergienko and Ivanov 1993 and Gustavsson AIDA_TOOLs
@@ -64,7 +67,7 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn):
     if ((E<100) | (E>1e4)).any():
         logging.warning('Sergienko & Ivanov 1993 covered E \in [100,10000] eV')
 
-    if (dens.altkm>500.).any():
+    if (dens.altkm>700.).any():
         logging.warning('Sergienko & Ivanov 1993 assumed electron source was at altitude 700km.')
 
 #%% Table 1 Sergienko & Ivanov 1993, rightmost column
@@ -89,47 +92,54 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn):
         Ebins = linspace(e,e+d,20) #make a subset of fine resolution energy bins within bigger  energy bins
 
         #for isotropic or field aligned electron beams
-        # kernel of Eqn 6 integral
-        Wkernel = energy_deg(Ebins,isotropic,dens,datfn) # Nsubenergy x Naltitude
-        # numerical integration of Eqn 6
-        W = Wkernel.sum(axis=0) #integrate over the interim energy sub-bins
+        # Eqn 6 integral
+        W = energy_deg(Ebins,isotropic,dens,datfn,verbose) # Nsubenergy x Naltitude
 
         for s in species:
-            Q.loc[s,:,e] = W * Peps.loc[:,s] #effect of ion chemistry at each altitude
+            Q.loc[s,:,e] = W.loc[:,s] * Peps.loc[:,s] #effect of ion chemistry at each altitude
 
     return Q
 
-def energy_deg(E,isotropic,dens,datfn):
+def energy_deg(E,isotropic,dens,datfn,verbose):
     """
     energy degradation of precipitating electrons -- kernel of Eqn 6
     """
-    N = dens.loc[:,'Total'].values/1e3
-    Nalt = N.shape[0]
+    # NOTE kg m^-2 *10 = g cm^-2
+    rho = dens.loc[:,'Total'].values * 10. # mass density of atmosphere [g cm^2]
+    z = dens.altkm.values
 
     dE = gradient(E)
-    dH = gradient(dens.altkm)
 
     Rng = PitchAngle_range(E,isotropic) # Eqn A3, Table 7
     alb = albedo(E,isotropic,datfn)
 
-    zetm = zeros(Nalt)
-    for i in range(Nalt-1,0,-1): #careful with these indices!
-        dzetm = (N[i] + N[i-1])*dH[i-1]*1e5/2
-        zetm[i-1] = zetm[i] + dzetm
+    #scattering depth (Rees  Physics & Chem of Upper Atm. Eqn 3.3.5 pg. 40)
+    zetm = -cumtrapz(rho[::-1],z[::-1],initial=-0.)[::-1]
 #%% Eqn 8 as Eqn A4
     chi = zetm / Rng[:,None]
     Lambda = lambda_comp(chi,E,isotropic,datfn)[0]
+    if verbose > 1: #dozens of plots (Nenergy)
+        if isotropic:
+            Lambda_i=[Lambda[0,:]]; Lambda_m=None
+        else:
+            Lambda_m=[Lambda[0,:]]; Lambda_i=None
+        fig11([E[0]],[chi[0,:]],Lambda_m,Lambda_i,None)
 #%%  kernel of Eqn A4
+    W = DataArray(data=empty((z.size,len(species))),
+                  coords=[z,species],
+                  dims=['altkm','species'])
+    for s in species:
     #Nsubenergy x Nalt
-    Wks = N * Lambda * E[:,None] * (1-alb[:,None]) / Rng[:,None]
+        Wks = rho * Lambda * E[:,None] * (1-alb[:,None]) / Rng[:,None]
 
-    Wks[0,:] *= dE[0]/2. #lowest subenergy
-    Wks[-1,:]*= dE[-1]/2.
-    Wks[1:-2,:] *= (dE[1:-2] + dE[0:-3])[:,None] / 2.
+        Wks[0,:] *= dE[0]/2. #lowest subenergy
+        Wks[-1,:]*= dE[-1]/2.
+        Wks[1:-2,:] *= (dE[1:-2] + dE[0:-3])[:,None] / 2.
 
-    Wk= Wks
+        # summed over subenergy bins
+        W.loc[:,s] = Wks.sum(axis=0)
 
-    return Wk
+    return W
 
 def PitchAngle_range(E,isotropic):
     """
@@ -208,14 +218,15 @@ def partition(dens,k,cost):
     """
     Implement Eqn 7 Sergienko 1993
 
-    N: density vs. altitude for each species
+    N: NUMBER density [cm^-3] vs. altitude for each species
     k: correction factors vs. Monte Carlo for Sergienko 1993
     cost: energization cost
 
     output:
-    P_i(h)
+    P_i(h) / epsilon
     """
-    N = dens.loc[:,species]
+    # m^-3 /1e6 = cm^-3
+    N = dens.loc[:,species]/1e6  #[cm^-3]
 
     num=DataArray(data=empty((N.shape[0],len(species))),
                   coords=[N.altkm,species],
@@ -229,7 +240,6 @@ def partition(dens,k,cost):
     for i in species:
         P.loc[:,i] = num.loc[:,i]/den
 #%% energization cost
-
     Peps = num.copy()
     for i in species:
         Peps.loc[:,i] = P.loc[:,i] / cost[i]
@@ -253,7 +263,7 @@ def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     else:
         z = setupz(Nalt,minalt,1.5,11.1475)
 
-    z = z[z <= 500] #keeps original spacing, but only auroral altitudes
+    z = z[z <= 700] #keeps original spacing, but only auroral altitudes to source at z=700km
 #%% energy of beams
     if special_grid.lower()=='transcar':
         E = logspace(1.72,4.25,num=33,base=10)

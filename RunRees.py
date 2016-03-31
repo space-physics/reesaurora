@@ -31,7 +31,7 @@ Wedlund et al "Electron Energy Spectra and Auroral Arcs" JGR 2013
 Sergienko and Ivanov 1993 "A new approach to calculate the excitation of atmospheric gases by auroral electron impact"
 """
 
-def runrees(t,glat,glon,isotropic,outfn,minalt,nalt,vlim):
+def runrees(t,glat,glon,isotropic,outfn,minalt,nalt,vlim,verbose):
     """
     inputs:
     t: time(s) to model, datetime() or ut1_unix
@@ -40,7 +40,7 @@ def runrees(t,glat,glon,isotropic,outfn,minalt,nalt,vlim):
     """
     z,E = loadaltenergrid(minalt,nalt)
 
-    Q = reesiono(t, z, E, glat, glon,isotropic,datfn='data/SergienkoIvanov.h5')
+    Q = reesiono(t, z, E, glat, glon,isotropic,verbose,datfn='data/SergienkoIvanov.h5')
 
 #%% outputs
     writeeigen(outfn,E,t,z,prates=Q,tezs=None,latlon=(glat,glon))
@@ -100,7 +100,8 @@ if __name__ == '__main__':
     p.add_argument('--nalt',help='Number of points in altitude grid',type=int,default=286)
     p.add_argument('-o','--outfn',help='give hdf5 filename to save eigenprofile production')
     p.add_argument('--isotropic',help='isotropic or non-isotropic pitch angle',action='store_true')
-    p.add_argument('--vlim',help='plotting limits on energy dep and production plots',nargs=2,type=float,default=(1e-7,1))
+    p.add_argument('--vlim',help='plotting limits on energy dep and production plots',nargs=2,type=float,default=(1e-7,1e0))
+    p.add_argument('-v','--verbose',help='plots inline',action='count',default=0)
     p = p.parse_args()
 
     datfn='data/SergienkoIvanov.h5'
@@ -111,7 +112,7 @@ if __name__ == '__main__':
 #    makefig12(datfn)
 #    makefig13(datfn)
 
-    runrees(t,p.latlon[0],p.latlon[1], p.isotropic,  p.outfn,p.minalt,p.nalt,p.vlim)
+    runrees(t,p.latlon[0],p.latlon[1], p.isotropic,  p.outfn,p.minalt,p.nalt,p.vlim,p.verbose)
 
     print('solar zenith angle  {:.1f} '.format(solarzenithangle(p.simtime,p.latlon[0],p.latlon[1],0.)[0]))
 
