@@ -15,8 +15,6 @@ def plotA(Q,ttxt,vlim):
        ax.set_title(ttxt)
        ax.set_xlabel('beam energy [eV]')
        ax.autoscale(True,tight=True) #fill axes
-       c=fg.colorbar(hi,ax=ax)
-       c.set_label('Volume Production Rate')
 
     fg,axs = subplots(1,Q.species.size,sharey=True)
     fg.suptitle(ttxt)
@@ -26,6 +24,10 @@ def plotA(Q,ttxt,vlim):
                            vmin=vlim[0],vmax=vlim[1],
                            norm=LogNorm())
         _doax(fg,ax,str(l))
+
+    c=fg.colorbar(hi,ax=ax)
+    c.set_label('Production Rate [cm$^{-3}$ s${^-1}$]')
+
 
     axs[0].set_ylabel('altitude [km]')
 #%% same data, different plot
