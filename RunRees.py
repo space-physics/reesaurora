@@ -107,14 +107,13 @@ if __name__ == '__main__':
 
     t = parse(p.simtime)
 #%%
+#    makefig11(datfn)
+#    makefig12(datfn)
+#    makefig13(datfn)
+
     runrees(t,p.latlon[0],p.latlon[1], p.isotropic,  p.outfn,p.minalt,p.nalt,p.vlim)
 
     print('solar zenith angle  {:.1f} '.format(solarzenithangle(p.simtime,p.latlon[0],p.latlon[1],0.)[0]))
 
-    makefig11(datfn)
-
-    makefig12(datfn)
-
-    makefig13(datfn)
 
     show()

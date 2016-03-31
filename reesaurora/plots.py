@@ -3,30 +3,32 @@ from matplotlib.colors import LogNorm
 from matplotlib.ticker import MultipleLocator
 
 def plotA(Q,ttxt,vlim):
-    E=Q.energy
-    z=Q.altkm
+    E=Q.energy.values
+    z=Q.altkm.values
+    species = Q.species.values
     Q=Q[0] #TODO first time only
 #%%
-    def _doax(ax,ttxt):
+    def _doax(fg,ax,ttxt):
        ax.yaxis.set_major_locator(MultipleLocator(100))
        ax.yaxis.set_minor_locator(MultipleLocator(20))
        ax.set_xscale('log')
        ax.set_title(ttxt)
+       ax.set_xlabel('beam energy [eV]')
+       ax.autoscale(True,tight=True) #fill axes
+       c=fg.colorbar(hi,ax=ax)
+       c.set_label('Volume Production Rate')
 
     fg,axs = subplots(1,Q.species.size,sharey=True)
     fg.suptitle(ttxt)
-    for ax,Qs,l in zip(axs,Q.values,Q.species.values):
+
+    for ax,Qs,l in zip(axs,Q.values,species):
         hi = ax.pcolormesh(E,z,Qs,
                            vmin=vlim[0],vmax=vlim[1],
                            norm=LogNorm())
-        c=fg.colorbar(hi,ax=ax)
-        c.set_label('Volume Production Rate')
-        ax.set_xlabel('beam energy [eV]')
-        ax.autoscale(True,tight=True) #fill axes
-        _doax(ax,str(l))
+        _doax(fg,ax,str(l))
 
     axs[0].set_ylabel('altitude [km]')
-#%% same data, differnt plot
+#%% same data, different plot
 #    ax = figure().gca()
 #    ax.plot(Q,z)
 #    ax.set_xlim(vlim)

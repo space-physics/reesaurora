@@ -9,7 +9,7 @@ import h5py
 from dateutil.parser import parse
 from datetime import datetime
 from xarray import DataArray
-from numpy import (gradient,array,linspace,zeros,diff,empty,append,arange,log10,exp,nan,
+from numpy import (gradient,array,linspace,zeros,diff,empty,append,log10,exp,nan,
                    logspace,atleast_1d,ndarray,copy)
 from scipy.interpolate import interp1d
 #
@@ -21,8 +21,9 @@ try:
 except ImportError as e:
     logging.error(e)
 
+species =['N2','O','O2']
+
 def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,datfn):
-    species = ['N2','O2','O']
     #other assertions covered inside modules
     assert isinstance(isotropic,bool)
 
@@ -60,7 +61,7 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn):
     simple model for volume emission as function of altitude.
     After Sergienko and Ivanov 1993 and Gustavsson AIDA_TOOLs
     """
-    if ((E<50) | (E>1e4)).any():
+    if ((E<100) | (E>1e4)).any():
         logging.warning('Sergienko & Ivanov 1993 covered E \in [100,10000] eV')
 
     if (dens.altkm>500.).any():
@@ -69,13 +70,13 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn):
 #%% Table 1 Sergienko & Ivanov 1993, rightmost column
     # mean energy per ion-electron pair
     E_cost_ion = {'N2':36.8,'O2':28.2,'O':26.8}
-#%% Eqn 7
+#%% Eqn 7, Figure 6
     k = {'N2':1.,'O2':0.7,'O':0.4}
 
     dE = diff(E); dE = append(dE,dE[-1])
 
     Peps = partition(dens,k,E_cost_ion) #Nalt x Nspecies
-#%% Calculate the energy deposition as a function of altitude
+#%% Calculate the energy deposition "loss" as a function of altitude
     """
     Implement through Eqn 8.
     Q: per species per state
@@ -86,10 +87,12 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn):
 
     for i,(e,d) in enumerate(zip(E,dE)):
         Ebins = linspace(e,e+d,20) #make a subset of fine resolution energy bins within bigger  energy bins
-        #for isotropic or field aligned electron beams
-        Am = energy_deg(Ebins,isotropic,dens,datfn) # Nsubenergy x Naltitude
 
-        W = Am.sum(axis=0) #integrate over the interim energy sub-bins
+        #for isotropic or field aligned electron beams
+        # kernel of Eqn 6 integral
+        Wkernel = energy_deg(Ebins,isotropic,dens,datfn) # Nsubenergy x Naltitude
+        # numerical integration of Eqn 6
+        W = Wkernel.sum(axis=0) #integrate over the interim energy sub-bins
 
         for s in species:
             Q.loc[s,:,e] = W * Peps.loc[:,s] #effect of ion chemistry at each altitude
@@ -98,33 +101,35 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn):
 
 def energy_deg(E,isotropic,dens,datfn):
     """
-    energy degradation of precipitating electrons
+    energy degradation of precipitating electrons -- kernel of Eqn 6
     """
-    atmp = dens.loc[:,'Total'].values/1e3
+    N = dens.loc[:,'Total'].values/1e3
+    Nalt = N.shape[0]
 
-    N_alt0 = atmp.shape[0]
-    zetm = zeros(N_alt0)
+    dE = gradient(E)
     dH = gradient(dens.altkm)
-    for i in range(N_alt0-1,0,-1): #careful with these indices!
-        dzetm = (atmp[i] +atmp[i-1])*dH[i-1]*1e5/2
-        zetm[i-1] = zetm[i] + dzetm
 
+    Rng = PitchAngle_range(E,isotropic) # Eqn A3, Table 7
     alb = albedo(E,isotropic,datfn)
 
-    Am = zeros((E.size,N_alt0))
-    D_en = gradient(E)
-    r = PitchAngle_range(E,isotropic)
-
-    chi = zetm / r[:,None]
-
+    zetm = zeros(Nalt)
+    for i in range(Nalt-1,0,-1): #careful with these indices!
+        dzetm = (N[i] + N[i-1])*dH[i-1]*1e5/2
+        zetm[i-1] = zetm[i] + dzetm
+#%% Eqn 8 as Eqn A4
+    chi = zetm / Rng[:,None]
     Lambda = lambda_comp(chi,E,isotropic,datfn)[0]
+#%%  kernel of Eqn A4
+    #Nsubenergy x Nalt
+    Wks = N * Lambda * E[:,None] * (1-alb[:,None]) / Rng[:,None]
 
-    Am = atmp * Lambda * E[:,None] * (1-alb[:,None])/r[:,None]
+    Wks[0,:] *= dE[0]/2. #lowest subenergy
+    Wks[-1,:]*= dE[-1]/2.
+    Wks[1:-2,:] *= (dE[1:-2] + dE[0:-3])[:,None] / 2.
 
-    Am[0,:] *= D_en[0]/2.
-    Am[-1,:]*= D_en[-1]/2.
-    Am[1:-2,:] *= (D_en[1:-2]+D_en[0:-3])[:,None]/2.
-    return Am
+    Wk= Wks
+
+    return Wk
 
 def PitchAngle_range(E,isotropic):
     """
@@ -210,8 +215,6 @@ def partition(dens,k,cost):
     output:
     P_i(h)
     """
-    species = ['N2','O','O2']
-
     N = dens.loc[:,species]
 
     num=DataArray(data=empty((N.shape[0],len(species))),
@@ -220,7 +223,7 @@ def partition(dens,k,cost):
     for i in species:
         num.loc[:,i] = k[i]*N.loc[:,i]
 
-    den=num.sum(axis=1)
+    den=num.sum('species')
 
     P = num.copy()
     for i in species:
