@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from datetime import datetime
 from numpy import datetime64
 from numpy.testing import assert_allclose,run_module_suite
 #
@@ -20,9 +19,9 @@ def test_reesiono():
 #%%
     assert_allclose(Q.altkm.values,z)
     assert_allclose(Q.energy.values,E)
-    assert Q.time[0] == datetime64(t)
+    assert Q.time[0] == datetime64(t),'times didnt match up'
 
-    Qv = Q[0].sum(axis=0)
+    Qv = Q[0].sum('species')  # total production
     assert_allclose([Qv[23,58],Qv[53,68]],
                     [0.0007949280872816374,4.2094326282647114e-06])
 
