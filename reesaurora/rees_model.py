@@ -101,7 +101,7 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose):
 
         #Eqn A4
         # assumes that F \equiv 1
-        dEs = gradient(E)
+        dEs = gradient(Ebins)
         kern = W
         kern[0,:] *= dEs[0]/2. #lowest subenergy
         kern[-1,:]*= dEs[-1]/2.
