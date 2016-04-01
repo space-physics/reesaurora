@@ -6,7 +6,7 @@ def plotA(Q,ttxt,vlim):
     E=Q.energy.values
     z=Q.altkm.values
     species = Q.species.values
-    Q=Q[0] #TODO first time only
+    Q=Q[0] #FIXME first time only
 #%%
     def _doax(fg,ax,ttxt):
        ax.yaxis.set_major_locator(MultipleLocator(100))
@@ -30,12 +30,44 @@ def plotA(Q,ttxt,vlim):
 
 
     axs[0].set_ylabel('altitude [km]')
-#%% same data, different plot
-#    ax = figure().gca()
-#    ax.plot(Q,z)
-#    ax.set_xlim(vlim)
-#    ax.set_xlabel('Energy Deposition')
-#    _doax(ax)
+
+def fig7(W,z,Eplot):
+    """
+    Eqn. 6 uses each species individually, while Eqn A1 (actually used in the program)
+    considers overall mass density of all three species at once.
+    """
+    # W: Nenergy x Nalt
+    ax = figure().gca()
+    for i,e in enumerate(Eplot):
+        ax.plot(W[i,:],z,label='{:.0f}'.format(e))
+    ax.set_title('Eqn A1')
+    ax.set_xscale('log')
+    ax.set_ylim(80,275)
+    ax.set_xlim(1e7,1e9)
+    ax.set_xlabel('Energy Deposition [eV cm$^{-3}$ s$^{-1}$]')
+    ax.set_ylabel('altitude [km]')
+    ax.legend()
+
+
+def fig8(Q):
+    Q=Q.squeeze()
+    E=Q.energy.values
+    z=Q.altkm.values
+    species=Q.species.values
+
+    fg,axs = subplots(1,3,num=8,sharey=True)
+    for ax,s in zip(axs,species):
+        for e in E:
+            ax.plot(Q.loc[s,:,e],z,label=str(e))
+        ax.legend()
+        ax.grid(True,which='both')
+        ax.set_ylim(80,275)
+        ax.set_xscale('log')
+        ax.set_xlim(1e-2,1e5)
+        ax.set_title(s)
+        ax.set_xlabel('Production Rate [cm$^{-3}$ s$^{-1}$]')
+    ax.set_ylabel('Altitude [km]')
+
 
 def fig11(E,chi,Lambda_m,Lambda_i,fignum=11): #from Sergienko & Ivanov 1993
     # Lambda: Nenergy x Nalt

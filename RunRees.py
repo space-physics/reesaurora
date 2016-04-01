@@ -8,10 +8,12 @@ sns.color_palette(sns.color_palette("cubehelix"))
 sns.set(context='talk', style='whitegrid',font_scale=1.5,
         rc={'image.cmap': 'cubehelix_r'}) #for contour
 #
-from reesaurora.rees_model import reesiono,loadaltenergrid,lambda_comp,albedo,PitchAngle_range
-from reesaurora.plots import fig11, fig12, fig13, plotA
+from reesaurora.rees_model import (reesiono,loadaltenergrid,lambda_comp,albedo,
+                                   PitchAngle_range, energy_deg)
+from reesaurora.plots import fig7,fig8,fig11, fig12, fig13, plotA
 from gridaurora.writeeigen import writeeigen
 from gridaurora.solarangle import solarzenithangle
+from msise00.runmsis import rungtd1d
 #
 isotropic=False
 """
@@ -30,6 +32,9 @@ Rees 1989
 Wedlund et al "Electron Energy Spectra and Auroral Arcs" JGR 2013
 Sergienko and Ivanov 1993 "A new approach to calculate the excitation of atmospheric gases by auroral electron impact"
 """
+Eplot = array([50,100,500,1e3,5e3,1e4])
+llp = (65.,148.)
+tp = '2013-01-01T12Z'
 
 def runrees(t,glat,glon,isotropic,outfn,minalt,nalt,vlim,verbose):
     """
@@ -47,27 +52,41 @@ def runrees(t,glat,glon,isotropic,outfn,minalt,nalt,vlim,verbose):
 
     plotA(Q,'Volume Production Rate {}  ({:.2f},{:.2f})'.format(t,glat,glon),vlim)
 
+def makefig7():
+    """
+    Energy deposition (W Eqn A1) plots
+    """
+    z = loadaltenergrid(80.,200)[0]
+
+    dens,temp = rungtd1d(tp,z,llp[0],llp[1],f107a=150.,f107=150.,ap=4.,
+                         mass=48., #leave mass=48. !
+                     tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float))
+
+    # NOTE kg m^-2 *10 = g cm^-2
+    rho = dens.loc[:,'Total'] * 10. # mass density of atmosphere [g cm^-3]
+    #eqn A1 Sergienko 1993
+    W = energy_deg(Eplot,isotropic,rho,datfn,verbose=0)
+
+    fig7(W,z,Eplot)
+
+def makefig8():
+    z = loadaltenergrid(80.,200)[0]
+
+    Q = reesiono('2013-01-01T12Z', z, Eplot, glat=65., glon=-148.,
+                 isotropic=False,verbose=0,datfn='data/SergienkoIvanov.h5')
+
+    fig8(Q)
+
 
 def makefig11(datfn):
-    from msise00.runmsis import rungtd1d
-
-    z,E = loadaltenergrid(30.,200)
-
-    E = array([50,100,500,1000,5000.])
-
-    dens,temp = rungtd1d(t,altkm=z,glat=65.,glon=148.,
-                         f107a=100.,f107=100.,ap=4.,
-                     mass=48.,
-                     tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)) #leave mass=48. !
-
 #%% make figure 11 from Sergienko and Ivanov 1993
     #Am,Lambda,chi = energy_deg(E,isotropic,dens)
-    chi = tile(arange(0,3,0.01),(E.size,1))
+    chi = tile(arange(0,3,0.01),(Eplot.size,1))
 
-    Lambda_m = lambda_comp(chi,E,isotropic=False,fn=datfn)[0]
-    Lambda_i = lambda_comp(chi,E,isotropic=True,fn=datfn)[0]
+    Lambda_m = lambda_comp(chi,Eplot,isotropic=False,fn=datfn)[0]
+    Lambda_i = lambda_comp(chi,Eplot,isotropic=True,fn=datfn)[0]
 
-    fig11(E,chi,Lambda_m,Lambda_i)
+    fig11(Eplot,chi,Lambda_m,Lambda_i)
 
 def makefig12(datfn):
 #%% make figure 12
@@ -108,11 +127,13 @@ if __name__ == '__main__':
 
     t = parse(p.simtime)
 #%%
+    makefig7()
+#    makefig8()
 #    makefig11(datfn)
 #    makefig12(datfn)
 #    makefig13(datfn)
 
-    runrees(t,p.latlon[0],p.latlon[1], p.isotropic,  p.outfn,p.minalt,p.nalt,p.vlim,p.verbose)
+    #runrees(t,p.latlon[0],p.latlon[1], p.isotropic,  p.outfn,p.minalt,p.nalt,p.vlim,p.verbose)
 
     print('solar zenith angle  {:.1f} '.format(solarzenithangle(p.simtime,p.latlon[0],p.latlon[1],0.)[0]))
 

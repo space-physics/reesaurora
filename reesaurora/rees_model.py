@@ -9,7 +9,7 @@ import h5py
 from dateutil.parser import parse
 from datetime import datetime
 from xarray import DataArray
-from numpy import (gradient,array,linspace,zeros,diff,empty,append,log10,exp,nan,
+from numpy import (gradient,array,linspace,diff,empty,append,log10,exp,nan,
                    logspace,atleast_1d,ndarray,copy)
 from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
@@ -98,10 +98,17 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose):
         # Eqn 6,A1
         W = energy_deg(Ebins,isotropic,rho,datfn,verbose) # Nsubenergy x Naltitude
 
+
         #Eqn A4
+        # assumes that F \equiv 1
+        dEs = gradient(E)
+        kern = W
+        kern[0,:] *= dEs[0]/2. #lowest subenergy
+        kern[-1,:]*= dEs[-1]/2.
+        kern[1:-2,:] *= (dEs[1:-2] + dEs[0:-3])[:,None] / 2.
         for s in species:
             # we sum W across the subenergies (numerical integration to help large energy grid step size)
-            Q.loc[s,:,e] = Peps.loc[:,s] * rho * W.sum(axis=0) # production rate [cm^-3 s^-1] due to gas mass density impacts at each altitude
+            Q.loc[s,:,e] = Peps.loc[:,s] * rho * kern.sum(axis=0) # production rate [cm^-3 s^-1] due to gas mass density impacts at each altitude
 
     return Q
 
@@ -112,9 +119,6 @@ def energy_deg(E,isotropic,rho,datfn,verbose):
     """
 
     z = rho.altkm.values
-    #rho=rho.values #so Numpy can cope
-
-    dE = gradient(E)
 
     Rng = PitchAngle_range(E,isotropic) # Eqn A3, Table 7
     alb = albedo(E,isotropic,datfn)
@@ -131,12 +135,8 @@ def energy_deg(E,isotropic,rho,datfn,verbose):
             Lambda_m=[Lambda[0,:]]; Lambda_i=None
         fig11([E[0]],[chi[0,:]],Lambda_m,Lambda_i,None)
 #%%  Eqn A1
-    #Nsubenergy x Nalt
+    #Nsubenergy x Nalt (since Nchi = Nalt)
     W = Lambda * E[:,None] * (1-alb[:,None]) / Rng[:,None]
-
-    W[0,:] *= dE[0]/2. #lowest subenergy
-    W[-1,:]*= dE[-1]/2.
-    W[1:-2,:] *= (dE[1:-2] + dE[0:-3])[:,None] / 2.
 
     return W
 
