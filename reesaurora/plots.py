@@ -21,7 +21,7 @@ def plotA(Q,ttxt,vlim):
 
     for ax,Qs,l in zip(axs,Q.values,species):
         hi = ax.pcolormesh(E,z,Qs,
-                           vmin=vlim[0],vmax=vlim[1],
+                           vmin=vlim[0],#vmax=vlim[1],
                            norm=LogNorm())
         _doax(fg,ax,str(l))
 
@@ -44,7 +44,7 @@ def fig7(W,z,Eplot):
     ax.set_xscale('log')
     ax.set_ylim(80,275)
     ax.set_xlim(1e7,1e9)
-    ax.set_xlabel('Energy Deposition [eV cm$^{-3}$ s$^{-1}$]')
+    ax.set_xlabel('Energy Deposition [eV g$^{-1}$ cm$^2$]')
     ax.set_ylabel('altitude [km]')
     ax.legend()
 
@@ -65,7 +65,7 @@ def fig8(Q):
         ax.set_xscale('log')
         ax.set_xlim(1e-2,1e5)
         ax.set_title(s)
-        ax.set_xlabel('Production Rate [cm$^{-3}$ s$^{-1}$]')
+        ax.set_xlabel('Ionization Rate [cm$^{-3}$ s$^{-1}$]')
     ax.set_ylabel('Altitude [km]')
 
 

@@ -15,7 +15,7 @@ from gridaurora.writeeigen import writeeigen
 from gridaurora.solarangle import solarzenithangle
 from msise00.runmsis import rungtd1d
 #
-isotropic=False
+isotropic=True
 """
 Models unit incident flux from the magnetosphere ionizing N2,O,O2
 vs. altitude and inital beam energy in the ionosphere.
@@ -72,7 +72,9 @@ def makefig7():
 def makefig8():
     z = loadaltenergrid(80.,200)[0]
 
-    Q = reesiono('2013-01-01T12Z', z, Eplot, glat=65., glon=-148.,
+    E = array([300,500,1000,5000,10000])
+
+    Q = reesiono('2013-01-01T12Z', z, E, glat=65., glon=-148.,
                  isotropic=False,verbose=0,datfn='data/SergienkoIvanov.h5')
 
     fig8(Q)
@@ -127,11 +129,11 @@ if __name__ == '__main__':
 
     t = parse(p.simtime)
 #%%
-    makefig7()
-#    makefig8()
-#    makefig11(datfn)
-#    makefig12(datfn)
-#    makefig13(datfn)
+    #makefig7()
+    makefig8()
+    #makefig11(datfn)
+    #makefig12(datfn)
+    #makefig13(datfn)
 
     runrees(t,p.latlon[0],p.latlon[1], p.isotropic,  p.outfn,p.minalt,p.nalt,p.vlim,p.verbose)
 
