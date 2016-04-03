@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 from dateutil.parser import parse
 from numpy import array,arange,tile,logspace
 from matplotlib.pyplot import show
@@ -137,5 +138,6 @@ if __name__ == '__main__':
     runrees(t,p.latlon[0],p.latlon[1], p.isotropic,  p.outfn,p.minalt,p.nalt,p.vlim,p.verbose)
 
     print('solar zenith angle  {:.1f} '.format(solarzenithangle(p.simtime,p.latlon[0],p.latlon[1],0.)[0]))
+
 
     show()
