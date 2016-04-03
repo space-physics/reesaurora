@@ -4,27 +4,35 @@
    After Sergienko and Ivanov 1993
    a massively speeded up implementation after the AIDA_TOOLS package by Gustavsson, Brandstrom, et al
 """
+import logging
+import h5py
 from dateutil.parser import parse
 from datetime import datetime
-from pandas import DataFrame,Panel
-from numpy import (gradient,array,linspace,zeros,diff,append,empty,arange,log10,exp,nan,
-                   logspace,atleast_1d)
+from xarray import DataArray
+from numpy import (array,linspace,diff,empty,append,log10,exp,nan,arange,
+                   logspace,atleast_1d,ndarray,copy,trapz,zeros,gradient)
+from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
-from matplotlib.pyplot import figure
-from matplotlib.colors import LogNorm
-from matplotlib.ticker import MultipleLocator
 #
 from gridaurora.ztanh import setupz
 from msise00.runmsis import rungtd1d
 from gridaurora.readApF107 import readmonthlyApF107
 try:
     from glowaurora.runglow import glowalt
-except:
-    pass
+except ImportError as e:
+    logging.error(e)
 
-def reesiono(T,altkm,E,glat:float,glon:float,isotropic:bool):
+from .plots import fig11
+
+species =['N2','O','O2']
+usesemeter=True
+
+def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,verbose:int,datfn):
     #other assertions covered inside modules
     assert isinstance(isotropic,bool)
+
+    if abs(glat)<45.:
+        logging.error('This model was intended for auroral precipitation.')
 
     if isinstance(T,str):
         T=parse(T)
@@ -32,13 +40,13 @@ def reesiono(T,altkm,E,glat:float,glon:float,isotropic:bool):
     assert isinstance(T[0],datetime)
 #%% MSIS
     if isotropic:
-        print('isotropic pitch angle flux')
+        logging.debug('isotropic pitch angle flux')
     else:
-        print('field-aligned pitch angle flux')
+        logging.debug('field-aligned pitch angle flux')
 
-    qPanel = Panel(items=T,
-                   major_axis=E,
-                   minor_axis=altkm)
+    Qt = DataArray(data=empty((T.size,len(species),altkm.size,E.size)),
+                   coords=[T,species,altkm,E],
+                   dims=['time','species','altkm','energy'])
 #%% loop
     for t in T:
         f107Ap=readmonthlyApF107(t)
@@ -50,23 +58,31 @@ def reesiono(T,altkm,E,glat:float,glon:float,isotropic:bool):
                              mass=48.,
                              tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)) #leave mass=48. !
 
-        q = ionization_profile_from_flux(E,dens,isotropic)
-        qPanel.loc[t,:,:] = q.T
+        Q = ionization_profile_from_flux(E,dens,isotropic,datfn,verbose)
+        Qt.loc[t,...] = Q
 
-    return qPanel
+    return Qt
 
-#TODO check that "isotropic" is handled consistently with original code
-def ionization_profile_from_flux(E,dens,isotropic):
+def ionization_profile_from_flux(E,dens,isotropic,datfn,verbose):
     """
     simple model for volume emission as function of altitude.
     After Sergienko and Ivanov 1993 and Gustavsson AIDA_TOOLs
     """
-    E_cost_ion = array([36.8,26.8,28.2])
-    ki = array([1, 0.7, 0.4])
+    if ((E<50.) | (E>1e4)).any():
+        logging.warning('Sergienko & Ivanov 1993 covered E \in [100,10000] eV')
+
+    if (dens.altkm>700.).any():
+        logging.error('Sergienko & Ivanov 1993 assumed electron source was at altitude 700km.')
+
+#%% Table 1 Sergienko & Ivanov 1993, rightmost column
+    # mean energy per ion-electron pair
+    E_cost_ion = {'N2':36.8,'O2':28.2,'O':26.8}
+#%% Eqn 7, Figure 6
+    k = {'N2':1.,'O2':0.7,'O':0.4}
 
     dE = diff(E); dE = append(dE,dE[-1])
 
-    Partitioning = partition(dens,ki)
+    Peps = partition(dens,k,E_cost_ion) #Nalt x Nspecies
 
 #%% First calculate the energy deposition as a function of altitude
     qE = empty((dens.shape[0],E.size)) # Nalt x Nenergy
@@ -76,7 +92,7 @@ def ionization_profile_from_flux(E,dens,isotropic):
         Am = energy_deg(Ebins,isotropic,dens)
 
         q= Am.sum(axis=0) #sum over the interim energy sub-bins
-        q *= (Partitioning/E_cost_ion).sum(axis=1) #effect of ion chemistry at each altitude
+        q *= Peps.sum(axis=1) #effect of ion chemistry at each altitude
         qE[:,i] = q
     return qE
 
@@ -84,31 +100,27 @@ def energy_deg(E,isotropic,dens):
     """
     energy degradation of precipitating electrons
     """
-    atmp = DataFrame(index=dens.index)
-    atmp[['N2','O','O2']] = dens[['N2','O','O2']]/1e6
-    atmp['Total'] = dens['Total']/1e3
+    atmp = dens.loc[:,'Total']/1e3
 
     N_alt0 = atmp.shape[0]
     zetm = zeros(N_alt0)
-    dH = gradient(atmp.index)
+    dH = gradient(atmp.altkm)
     for i in range(N_alt0-1,0,-1): #careful with these indices!
-        dzetm = (atmp.iat[i,-1]+atmp.iat[i-1,-1])*dH[i-1]*1e5/2
+        dzetm = (atmp[i]+atmp[i-1])*dH[i-1]*1e5/2
         zetm[i-1] = zetm[i] + dzetm
 
     alb = albedo(E,isotropic)
 
     Am = zeros((E.size,N_alt0))
     D_en = gradient(E)
-    r = Pat_range(E,isotropic)
+    r = PitchAngle_range(E,isotropic)
 
     hi = zetm / r[:,None]
 
     Lambda = lambda_comp(hi,E,isotropic)
 
-    Am = atmp.iloc[:,-1].values * Lambda * E[:,None] * (1-alb[:,None])/r[:,None]
+    Am = atmp.values * Lambda * E[:,None] * (1-alb[:,None])/r[:,None]
 
-#    for i in range(N_alt0):
-#        Am[:,i] = atmp.iat[i,-1] * Lambda[:,i] * E[:,None] * (1-alb)/r
 
     Am[0,:] *= D_en[0]/2.
     Am[-1,:]*= D_en[-1]/2.
@@ -183,9 +195,37 @@ def lambda_comp(hi,E,isotropic):
 
     return lam
 
-def partition(dens,ki):
-    P = ki[[0,2,1]]*dens[['N2','O','O2']].values
-    return P / P.sum(axis=1)[:,None]
+def partition(dens,k,cost):
+    """
+    Implement Eqn 7 Sergienko 1993
+
+    N: NUMBER density [cm^-3] vs. altitude for each species
+    k: correction factors vs. Monte Carlo for Sergienko 1993
+    cost: energization cost
+
+    output:
+    P_i(h) / epsilon
+    """
+    # m^-3 /1e6 = cm^-3
+    N = dens.loc[:,species]/1e6  #[cm^-3]
+
+    num=DataArray(data=empty((N.shape[0],len(species))),
+                  coords=[N.altkm,species],
+                  dims=['altkm','species'])
+    for i in species:
+        num.loc[:,i] = k[i]*N.loc[:,i]
+
+    den=num.sum('species')
+
+    P = num.copy()
+    for i in species:
+        P.loc[:,i] = num.loc[:,i]/den
+#%% energization cost
+    Peps = num.copy()
+    for i in species:
+        Peps.loc[:,i] = P.loc[:,i] / cost[i]
+
+    return Peps
 
 def plotA(q,ttxt,vlim):
     E=q.major_axis.values
