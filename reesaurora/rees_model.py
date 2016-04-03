@@ -9,8 +9,8 @@ import h5py
 from dateutil.parser import parse
 from datetime import datetime
 from xarray import DataArray
-from numpy import (gradient,array,linspace,diff,empty,append,log10,exp,nan,
-                   logspace,atleast_1d,ndarray,copy)
+from numpy import (array,linspace,diff,empty,append,log10,exp,nan,
+                   logspace,atleast_1d,ndarray,copy,trapz)
 from scipy.integrate import cumtrapz
 from scipy.interpolate import interp1d
 #
@@ -25,10 +25,14 @@ except ImportError as e:
 from .plots import fig11
 
 species =['N2','O','O2']
+usesemeter=True
 
 def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,verbose:int,datfn):
     #other assertions covered inside modules
     assert isinstance(isotropic,bool)
+
+    if abs(glat)<45.:
+        logging.error('This model was intended for auroral precipitation.')
 
     if isinstance(T,str):
         T=parse(T)
@@ -64,11 +68,11 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose):
     simple model for volume emission as function of altitude.
     After Sergienko and Ivanov 1993 and Gustavsson AIDA_TOOLs
     """
-    if ((E<100) | (E>1e4)).any():
+    if ((E<50.) | (E>1e4)).any():
         logging.warning('Sergienko & Ivanov 1993 covered E \in [100,10000] eV')
 
     if (dens.altkm>700.).any():
-        logging.warning('Sergienko & Ivanov 1993 assumed electron source was at altitude 700km.')
+        logging.error('Sergienko & Ivanov 1993 assumed electron source was at altitude 700km.')
 
 #%% Table 1 Sergienko & Ivanov 1993, rightmost column
     # mean energy per ion-electron pair
@@ -95,20 +99,19 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose):
         Ebins = linspace(e,e+d,20) #make a subset of fine resolution energy bins within bigger  energy bins
 
         #for isotropic or field aligned electron beams
-        # Eqn 6,A1
+        # Eqn A1   W(E0,chi) [eV g^-1 cm^2]
         W = energy_deg(Ebins,isotropic,rho,datfn,verbose) # Nsubenergy x Naltitude
 
 
         #Eqn A4
         # assumes that F \equiv 1
-        dEs = gradient(Ebins)
-        kern = W
-        kern[0,:] *= dEs[0]/2. #lowest subenergy
-        kern[-1,:]*= dEs[-1]/2.
-        kern[1:-2,:] *= (dEs[1:-2] + dEs[0:-3])[:,None] / 2.
+        #dEs = gradient(Ebins)
+       # W[0,:] *= dEs[0]/2. #lowest subenergy
+       # W[-1,:]*= dEs[-1]/2.
+       # W[1:-2,:] *= (dEs[1:-2] + dEs[0:-3])[:,None] / 2.
         for s in species:
             # we sum W across the subenergies (numerical integration to help large energy grid step size)
-            Q.loc[s,:,e] = Peps.loc[:,s] * rho * kern.sum(axis=0) # production rate [cm^-3 s^-1] due to gas mass density impacts at each altitude
+            Q.loc[s,:,e] = Peps.loc[:,s] * rho * trapz(W,Ebins,axis=0) #W.sum(axis=0) # production rate [cm^-3 s^-1] due to gas mass density impacts at each altitude
 
     return Q
 
@@ -124,10 +127,15 @@ def energy_deg(E,isotropic,rho,datfn,verbose):
     alb = albedo(E,isotropic,datfn)
 
     #scattering depth (Rees  Physics & Chem of Upper Atm. Eqn 3.3.5 pg. 40)
-    zetm = -cumtrapz(rho[::-1],z[::-1],initial=-0.)[::-1]
+    scatterdepth = -cumtrapz(rho[::-1],z[::-1],initial=-0.)[::-1]
 #%% Eqn 8 as Eqn A4
-    chi = zetm / Rng[:,None]
-    Lambda = lambda_comp(chi,E,isotropic,datfn)[0]
+    chi = scatterdepth / Rng[:,None]
+
+    if usesemeter:
+        Lambda = lambda_table(chi,isotropic,datfn)
+    else:
+        Lambda = lambda_comp(chi,E,isotropic,datfn)[0]
+
     if verbose > 1: #dozens of plots (Nenergy)
         if isotropic:
             Lambda_i=[Lambda[0,:]]; Lambda_m=None
@@ -136,7 +144,8 @@ def energy_deg(E,isotropic,rho,datfn,verbose):
         fig11([E[0]],[chi[0,:]],Lambda_m,Lambda_i,None)
 #%%  Eqn A1
     #Nsubenergy x Nalt (since Nchi = Nalt)
-    W = Lambda * E[:,None] * (1-alb[:,None]) / Rng[:,None]
+    #[eV g^-1 cm^2]
+    W = E[:,None] * (1-alb[:,None]) * Lambda / Rng[:,None]
 
     return W
 
@@ -160,9 +169,6 @@ def PitchAngle_range(E,isotropic):
 
     return B1*kE**1.67 * (1. + B2*kE**B3)
 
-    #pr= 1.64e-6 if isotropic else 2.16e-6
-    #return pr * (E/1e3)**1.67 * (1 + 9.48e-2 * E**-1.57)
-
 def albedo(E,isotropic,fn):
 
     with h5py.File(str(fn),'r',libver='latest') as h:
@@ -177,6 +183,16 @@ def albedo(E,isotropic,fn):
         alb = falb(log10(E))
 
     return alb
+
+def lambda_table(chi,isotropic,fn):
+    if not isotropic:
+        logging.info('Table 1 Semeter/Kamalabdai 2004 Radio Science data for isotropic precipitation.')
+
+    with h5py.File(str(fn),'r',libver='latest') as h:
+        fl = interp1d(h['lambda/sR'],h['lambda/lambda'],kind='linear',bounds_error=False,fill_value=0.)
+        Lambda = fl(chi)
+
+    return Lambda
 
 def lambda_comp(chi,E,isotropic,fn):
     """
