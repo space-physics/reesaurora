@@ -115,7 +115,7 @@ def energy_deg(E,isotropic,dens):
     Am[1:-2,:] *= (D_en[1:-2]+D_en[0:-3])[:,None]/2.
     return Am
 
-def Pat_range(E,isotropic):
+def PitchAngle_range(E,isotropic):
     pr= 1.64e-6 if isotropic else 2.16e-6
     return pr * (E/1e3)**1.67 * (1 + 9.48e-2 * E**-1.57)
 
