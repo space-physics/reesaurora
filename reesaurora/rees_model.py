@@ -5,13 +5,11 @@
    a massively speeded up implementation after the AIDA_TOOLS package by Gustavsson, Brandstrom, et al
 """
 import logging
-import h5py
 from dateutil.parser import parse
 from datetime import datetime
 from xarray import DataArray
 from numpy import (array,linspace,diff,empty,append,log10,exp,nan,arange,
-                   logspace,atleast_1d,ndarray,copy,trapz,zeros,gradient)
-from scipy.integrate import cumtrapz
+                   logspace,atleast_1d,ndarray,zeros,gradient)
 from scipy.interpolate import interp1d
 #
 from gridaurora.ztanh import setupz
@@ -21,8 +19,6 @@ try:
     from glowaurora.runglow import glowalt
 except ImportError as e:
     logging.error(e)
-
-from .plots import fig11
 
 species =['N2','O','O2']
 usesemeter=True
@@ -44,9 +40,9 @@ def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,verb
     else:
         logging.debug('field-aligned pitch angle flux')
 
-    Qt = DataArray(data=empty((T.size,len(species),altkm.size,E.size)),
-                   coords=[T,species,altkm,E],
-                   dims=['time','species','altkm','energy'])
+    Qt = DataArray(data=empty((T.size,altkm.size,E.size)),
+                   coords=[T,altkm,E],
+                   dims=['time','altkm','energy'])
 #%% loop
     for t in T:
         f107Ap=readmonthlyApF107(t)
@@ -227,34 +223,7 @@ def partition(dens,k,cost):
 
     return Peps
 
-def plotA(q,ttxt,vlim):
-    E=q.major_axis.values
-    z=q.minor_axis.values
-    Q=q.values.squeeze().T
-#%%
-    def _doax(ax):
-       ax.yaxis.set_major_locator(MultipleLocator(100))
-       ax.yaxis.set_minor_locator(MultipleLocator(20))
-       ax.set_xscale('log')
-       ax.set_ylabel('altitude [km]')
-       ax.set_title(ttxt)
 
-    fg = figure()
-    ax = fg.gca()
-    hi = ax.pcolormesh(E,z,Q,
-                       vmin=vlim[0],vmax=vlim[1],
-                       norm=LogNorm())
-    c=fg.colorbar(hi,ax=ax)
-    c.set_label('Volume Production Rate')
-    ax.set_xlabel('beam energy [eV]')
-    ax.autoscale(True,tight=True) #fill axes
-    _doax(ax)
-#%% same data, differnt plot
-    ax = figure().gca()
-    ax.plot(Q,z)
-    ax.set_xlim(vlim)
-    ax.set_xlabel('Energy Deposition')
-    _doax(ax)
 
 def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     """
@@ -273,11 +242,11 @@ def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     else:
         z = setupz(Nalt,minalt,1.5,11.1475)
 
-    z = z[z <= 1000] #keeps original spacing, but only auroral altitudes
+    z = z[z <= 700] #keeps original spacing, but with heights less than source at 700km
 #%% energy of beams
     if special_grid.lower()=='transcar':
         E = logspace(1.72,4.25,num=33,base=10)
     else:
-        E = logspace(1.72,6.,num=81,base=10)
+        E = logspace(1.72,4.25,num=81,base=10)
 
     return z,E

@@ -121,7 +121,7 @@ if __name__ == '__main__':
     p.add_argument('--nalt',help='Number of points in altitude grid',type=int,default=286)
     p.add_argument('-o','--outfn',help='give hdf5 filename to save eigenprofile production')
     p.add_argument('--isotropic',help='isotropic or non-isotropic pitch angle',action='store_true')
-    p.add_argument('--vlim',help='plotting limits on energy dep and production plots',nargs=2,type=float,default=(1e-3,1e4))
+    p.add_argument('--vlim',help='plotting limits on energy dep and production plots',nargs=2,type=float,default=(1e-7,1e1))
     p.add_argument('-v','--verbose',help='plots inline',action='count',default=0)
     p = p.parse_args()
 

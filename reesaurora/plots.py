@@ -5,7 +5,7 @@ from matplotlib.ticker import MultipleLocator
 def plotA(Q,ttxt,vlim):
     E=Q.energy.values
     z=Q.altkm.values
-    species = Q.species.values
+    #species = Q.species.values
     Q=Q[0] #FIXME first time only
 #%%
     def _doax(fg,ax,ttxt):
@@ -16,20 +16,22 @@ def plotA(Q,ttxt,vlim):
        ax.set_xlabel('beam energy [eV]')
        ax.autoscale(True,tight=True) #fill axes
 
-    fg,axs = subplots(1,Q.species.size,sharey=True)
-    fg.suptitle(ttxt)
+    #fg,axs = subplots(1,Q.species.size,sharey=True)
+    #fg.suptitle(ttxt)
+    fg = figure()
 
-    for ax,Qs,l in zip(axs,Q.values,species):
-        hi = ax.pcolormesh(E,z,Qs,
-                           vmin=vlim[0],#vmax=vlim[1],
-                           norm=LogNorm())
-        _doax(fg,ax,str(l))
+    #for ax,Qs,l in zip(axs,Q.values,species):
+    Qs = Q.values
+    ax = fg.gca()
+    hi = ax.pcolormesh(E,z,Qs,
+                       vmin=vlim[0],vmax=vlim[1],
+                       norm=LogNorm())
+    _doax(fg,ax,'')#str(l))
 
     c=fg.colorbar(hi,ax=ax)
     c.set_label('Production Rate [cm$^{-3}$ s${^-1}$]')
 
-
-    axs[0].set_ylabel('altitude [km]')
+    ax.set_ylabel('altitude [km]')
 
 def fig7(W,z,Eplot):
     """
@@ -53,19 +55,21 @@ def fig8(Q):
     Q=Q.squeeze()
     E=Q.energy.values
     z=Q.altkm.values
-    species=Q.species.values
+    #species=Q.species.values
 
-    fg,axs = subplots(1,3,num=8,sharey=True)
-    for ax,s in zip(axs,species):
-        for e in E:
-            ax.plot(Q.loc[s,:,e],z,label=str(e))
-        ax.legend()
-        ax.grid(True,which='both')
-        ax.set_ylim(80,275)
-        ax.set_xscale('log')
-        ax.set_xlim(1e-2,1e5)
-        ax.set_title(s)
-        ax.set_xlabel('Ionization Rate [cm$^{-3}$ s$^{-1}$]')
+    #fg,axs = subplots(1,3,num=8,sharey=True)
+    fg = figure()
+    #for ax,s in zip(axs,species):
+    ax = fg.gca()
+    for e in E:
+        ax.plot(Q.loc[:,e],z,label=str(e))
+    ax.legend()
+    ax.grid(True,which='both')
+    ax.set_ylim(80,275)
+    ax.set_xscale('log')
+    ax.set_xlim(1e-2,1e5)
+    ax.set_title('Ionization Rate')
+    ax.set_xlabel('Ionization Rate [cm$^{-3}$ s$^{-1}$]')
     ax.set_ylabel('Altitude [km]')
 
 
