@@ -21,10 +21,11 @@ def test_reesiono():
     assert_allclose(Q.energy.values,E)
     assert Q.time[0] == datetime64(t),'times didnt match up'
 
-    Qv = Q[0].sum('species')  # total production
+    Qv = Q.squeeze()
+    #Qv = Q[0].sum('species')  # total production
     #print([Qv[23,58],Qv[53,68]])
     assert_allclose([Qv[23,58],Qv[53,68]],
-                    [5.3296717229489765,0.04200315631340597])
+                    [8.280217e-04,   5.448110e-06],rtol=1e-5)
 
 if __name__ == '__main__':
     run_module_suite()

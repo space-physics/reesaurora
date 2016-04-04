@@ -5,13 +5,11 @@
    a massively speeded up implementation after the AIDA_TOOLS package by Gustavsson, Brandstrom, et al
 """
 import logging
-import h5py
 from dateutil.parser import parse
 from datetime import datetime
 from xarray import DataArray
-from numpy import (array,linspace,diff,empty,append,log10,exp,nan,
-                   logspace,atleast_1d,ndarray,copy,trapz)
-from scipy.integrate import cumtrapz
+from numpy import (array,linspace,diff,empty,append,log10,exp,nan,arange,
+                   logspace,atleast_1d,ndarray,zeros,gradient)
 from scipy.interpolate import interp1d
 #
 from gridaurora.ztanh import setupz
@@ -21,8 +19,6 @@ try:
     from glowaurora.runglow import glowalt
 except ImportError as e:
     logging.error(e)
-
-from .plots import fig11
 
 species =['N2','O','O2']
 usesemeter=True
@@ -44,9 +40,9 @@ def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,verb
     else:
         logging.debug('field-aligned pitch angle flux')
 
-    Qt = DataArray(data=empty((T.size,len(species),altkm.size,E.size)),
-                   coords=[T,species,altkm,E],
-                   dims=['time','species','altkm','energy'])
+    Qt = DataArray(data=empty((T.size,altkm.size,E.size)),
+                   coords=[T,altkm,E],
+                   dims=['time','altkm','energy'])
 #%% loop
     for t in T:
         f107Ap=readmonthlyApF107(t)
@@ -58,12 +54,12 @@ def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,verb
                              mass=48.,
                              tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)) #leave mass=48. !
 
-        Q = ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose)
+        Q = ionization_profile_from_flux(E,dens,isotropic,datfn,verbose)
         Qt.loc[t,...] = Q
 
     return Qt
 
-def ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose):
+def ionization_profile_from_flux(E,dens,isotropic,datfn,verbose):
     """
     simple model for volume emission as function of altitude.
     After Sergienko and Ivanov 1993 and Gustavsson AIDA_TOOLs
@@ -84,150 +80,115 @@ def ionization_profile_from_flux(E,dens,isotropic,species,datfn,verbose):
 
     Peps = partition(dens,k,E_cost_ion) #Nalt x Nspecies
 
-    # NOTE kg m^-2 *10 = g cm^-2
-    rho = dens.loc[:,'Total'] * 10. # mass density of atmosphere [g cm^-3]
-#%% Calculate the energy deposition "loss" as a function of altitude
-    """
-    Implement through Eqn 8.
-    Q: per species per state
-    """
-    Q = DataArray(data = empty((len(species),dens.shape[0],E.size)),
-                  coords=[species, dens.altkm, E],
-                  dims=['species','altkm','energy']) # Nalt x Nenergy x Nspecies
-
+#%% First calculate the energy deposition as a function of altitude
+    qE = empty((dens.shape[0],E.size)) # Nalt x Nenergy
     for i,(e,d) in enumerate(zip(E,dE)):
-        Ebins = linspace(e,e+d,20) #make a subset of fine resolution energy bins within bigger  energy bins
-
+        Ebins = linspace(e,e+d,20)
         #for isotropic or field aligned electron beams
-        # Eqn A1   W(E0,chi) [eV g^-1 cm^2]
-        W = energy_deg(Ebins,isotropic,rho,datfn,verbose) # Nsubenergy x Naltitude
+        Am = energy_deg(Ebins,isotropic,dens)
 
+        q= Am.sum(axis=0) #sum over the interim energy sub-bins
+        q *= Peps.sum(axis=1) #effect of ion chemistry at each altitude
+        qE[:,i] = q
+    return qE
 
-        #Eqn A4
-        # assumes that F \equiv 1
-        #dEs = gradient(Ebins)
-       # W[0,:] *= dEs[0]/2. #lowest subenergy
-       # W[-1,:]*= dEs[-1]/2.
-       # W[1:-2,:] *= (dEs[1:-2] + dEs[0:-3])[:,None] / 2.
-        for s in species:
-            # we sum W across the subenergies (numerical integration to help large energy grid step size)
-            Q.loc[s,:,e] = Peps.loc[:,s] * rho * trapz(W,Ebins,axis=0) #W.sum(axis=0) # production rate [cm^-3 s^-1] due to gas mass density impacts at each altitude
-
-    return Q
-
-def energy_deg(E,isotropic,rho,datfn,verbose):
+def energy_deg(E,isotropic,dens):
     """
-    energy degradation of precipitating electrons -- kernel of Eqn A4,6 implementing A1
-    rho: MASS density g cm^-3
+    energy degradation of precipitating electrons
     """
+    atmp = dens.loc[:,'Total']/1e3
 
-    z = rho.altkm.values
+    N_alt0 = atmp.shape[0]
+    zetm = zeros(N_alt0)
+    dH = gradient(atmp.altkm)
+    for i in range(N_alt0-1,0,-1): #careful with these indices!
+        dzetm = (atmp[i]+atmp[i-1])*dH[i-1]*1e5/2
+        zetm[i-1] = zetm[i] + dzetm
 
-    Rng = PitchAngle_range(E,isotropic) # Eqn A3, Table 7
-    alb = albedo(E,isotropic,datfn)
+    alb = albedo(E,isotropic)
 
-    #scattering depth (Rees  Physics & Chem of Upper Atm. Eqn 3.3.5 pg. 40)
-    scatterdepth = -cumtrapz(rho[::-1],z[::-1],initial=-0.)[::-1]
-#%% Eqn 8 as Eqn A4
-    chi = scatterdepth / Rng[:,None]
+    D_en = gradient(E)
+    r = PitchAngle_range(E,isotropic)
 
-    if usesemeter:
-        Lambda = lambda_table(chi,isotropic,datfn)
-    else:
-        Lambda = lambda_comp(chi,E,isotropic,datfn)[0]
+    hi = zetm / r[:,None]
 
-    if verbose > 1: #dozens of plots (Nenergy)
-        if isotropic:
-            Lambda_i=[Lambda[0,:]]; Lambda_m=None
-        else:
-            Lambda_m=[Lambda[0,:]]; Lambda_i=None
-        fig11([E[0]],[chi[0,:]],Lambda_m,Lambda_i,None)
-#%%  Eqn A1
-    #Nsubenergy x Nalt (since Nchi = Nalt)
-    #[eV g^-1 cm^2]
-    W = E[:,None] * (1-alb[:,None]) * Lambda / Rng[:,None]
+    Lambda = lambda_comp(hi,E,isotropic)
 
-    return W
+    Am = atmp.values * Lambda * E[:,None] * (1-alb[:,None])/r[:,None]
+
+
+    Am[0,:] *= D_en[0]/2.
+    Am[-1,:]*= D_en[-1]/2.
+    Am[1:-2,:] *= (D_en[1:-2]+D_en[0:-3])[:,None]/2.
+    return Am
 
 def PitchAngle_range(E,isotropic):
-    """
-    Eqn A3 & Table 7 from Sergienko & Ivanov 1993
-    Note E is keV in Eqn A3, hence the divide by 1000
+    pr= 1.64e-6 if isotropic else 2.16e-6
+    return pr * (E/1e3)**1.67 * (1 + 9.48e-2 * E**-1.57)
 
-    output:
-    range(E) [g/cm^2]
-    """
-    kE = E/1000.
+def albedo(E,isotropic):
+    isotropic = int(isotropic)
+    logE_p=append(1.69, arange(1.8,3.7+0.1,0.1))
+    Param=array(
+      [[0.352, 0.344, 0.334, 0.320, 0.300, 0.280, 0.260, 0.238, 0.218, 0.198, 0.180, 0.160, 0.143, 0.127, 0.119, 0.113, 0.108, 0.104, 0.102, 0.101, 0.100],
+       [0.500, 0.492, 0.484, 0.473, 0.463, 0.453, 0.443, 0.433, 0.423, 0.413, 0.403, 0.395, 0.388, 0.379, 0.378, 0.377, 0.377, 0.377, 0.377, 0.377, 0.377]])
+    logE=log10(E)
 
-    B2 = 9.48e-2
-    B3 = -1.57
-
-    # paper says this, but doesn't match Fig. 13. Bjorn had what's used.
-    B1=1.804e-6 if isotropic else 2.16e-6
-
-    #B1 = 1.64e-6 if isotropic else 2.16e-6
-
-    return B1*kE**1.67 * (1. + B2*kE**B3)
-
-def albedo(E,isotropic,fn):
-
-    with h5py.File(str(fn),'r',libver='latest') as h:
-        albedoflux = h['/albedo/flux'][int(isotropic),:]
-        LE = h['/albedo/E']
-
-        Emax = 10**LE[-1]
-        E = copy(E)
-        E[E>Emax] = Emax
-
-        falb=interp1d(LE, albedoflux, kind='linear',bounds_error=False,fill_value=nan)
-        alb = falb(log10(E))
+    falb=interp1d(logE_p,Param[isotropic,:],kind='linear',bounds_error=False,fill_value=nan)
+    alb = falb(logE)
+    alb[logE>logE_p[-1]] = Param[isotropic,-1]
 
     return alb
 
-def lambda_table(chi,isotropic,fn):
-    if not isotropic:
-        logging.info('Table 1 Semeter/Kamalabdai 2004 Radio Science data for isotropic precipitation.')
-
-    with h5py.File(str(fn),'r',libver='latest') as h:
-        fl = interp1d(h['lambda/sR'],h['lambda/lambda'],kind='linear',bounds_error=False,fill_value=0.)
-        Lambda = fl(chi)
-
-    return Lambda
-
-def lambda_comp(chi,E,isotropic,fn):
+def lambda_comp(hi,E,isotropic):
     """
-    Implements Eqn. A2 from Sergienko & Ivanov 1993
-
-    field-aligned monodirectional: interpolated over energies from 48.9 eV to 5012 eV
-
-    Isotropic: interpolated over 48.9ev to 1000 eV
-
-    "Param_m" and "Param_i" are from Table 6 of Sergienko & Ivanov 1993
-
+    interpolated over energies from 48.9 eV to 5012 eV
+    for isotropic and field-aligned precipitation
     """
-    with h5py.File(str(fn),'r',libver='latest') as h:
-#%% choose isotropic or monodirectional
-        if isotropic:
-            P = h['isotropic/C']
-            LE =h['isotropic/E']
-        else:
-            P = h['monodirectional/C']
-            LE =h['monodirectional/E']
-#%% more robust way to handle too-high values, like paper appears to do
-        Emax = 10**LE[-1]
-        E = copy(E)
-        E[E>Emax] = Emax
-#%% interpolate  -- use NaN as a sentinal value
-        fC=interp1d(LE,P,kind='linear',axis=1,bounds_error=False,fill_value=nan)
-        C = fC(log10(E))
-        """
-        the section below finally implements Eqn. A2 from the Sergienko & Ivanov 1993 paper.
-        We create a plot mimicing Fig. 11 from this paper.
-        """
-        lam = ((C[0,:][:,None]*chi + C[1,:][:,None]) *
-                exp(C[2,:][:,None]*chi**2 + C[3,:][:,None]*chi))
+#%% field-aligned
+    logE_m= append(1.69,arange(1.8,3.7+0.1,0.1))
+    Param_m =array(
+        [[1.43,1.51,1.58,1.62,1.51,1.54,1.18,1.02, 0.85, 0.69, 0.52,0.35,0.21,0.104,0.065,0.05,0.04,0.03,0.03, 0.025,0.021],
+         [0.83,0.77,0.72,0.67,0.63,0.59,0.56,0.525,0.495,0.465,0.44,0.42,0.40,0.386,0.37, 0.36,0.35,0.34,0.335,0.325,0.32],
+         [-0.025,-0.030, -0.040, -0.067, -0.105, -0.155, -0.210, -0.275, -0.36, -0.445, -0.51,-0.61, -0.69, -0.77, -0.83, -0.865, -0.90,-0.92, -0.935, -0.958, -0.96],
+         [-1.67,-1.65,-1.62,-1.56,-1.46,-1.35,-1.20,-0.98,-0.70,-0.37,-0.063,0.39,0.62,0.92,1.11,1.25,1.36,1.44,1.50,1.55,1.56]]
+         )
+#%% isotropic
+    """
+        interpolated over energies from 48.9 eV to 1000 eV
+    """
+    logE_i=append(1.69, arange(1.8,3.0+0.1,0.1))
+    Param_i =array(
+        [[0.041, 0.051, 0.0615, 0.071, 0.081, 0.09, 0.099, 0.1075, 0.116, 0.113, 0.13, 0.136, 0.139, 0.142],
+         [1.07, 1.01, 0.965, 0.9, 0.845, 0.805, 0.77, 0.735, 0.71, 0.69, 0.67, 0.665, 0.66, 0.657],
+         [-0.064, -0.1, -0.132, -0.171, -0.2, -0.221, -0.238, -0.252, -0.261, -0.267, -0.271, -0.274, -0.276, -0.277],
+         [-1.054, -0.95, -0.845, -0.72, -0.63, -0.54, -0.475, -0.425, -0.38, -0.345, -0.319, -0.295, -0.28, -0.268]]
+         )
 
-    return lam,C
+    logE=log10(E)
+
+    if isotropic:
+        P = Param_i
+        LE = logE_i
+        Emax = 1000.
+    else:
+        P = Param_m
+        LE = logE_m
+        Emax = 5000.
+#%% interpolate
+    fC=interp1d(LE,P,kind='linear',axis=1,bounds_error=False,fill_value=nan)
+    C = fC(logE)
+#%% low energy
+    lam = ((C[0,:][:,None]*hi + C[1,:][:,None]) *
+            exp(C[2,:][:,None]*hi**2 + C[3,:][:,None]*hi))
+#%% high energy
+    badind = E>Emax
+    lam[badind] = (
+                   (P[0,-1]*hi[badind] + P[1,-1]) *
+                   exp(P[2,-1]*hi[badind]**2 + P[3,-1]*hi[badind])
+                   )
+
+    return lam
 
 def partition(dens,k,cost):
     """
@@ -269,7 +230,7 @@ def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     Nalt: number of points in grid
     special_grid: use same grid as 'transcar' or 'glow'
     """
-    assert isinstance(special_grid,(str,None))
+    assert isinstance(special_grid,str)
     #%% altitude
     if special_grid.lower()=='transcar':
         z = setupz(286,90,1.5,11.1475)
@@ -278,11 +239,11 @@ def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     else:
         z = setupz(Nalt,minalt,1.5,11.1475)
 
-    z = z[z <= 700] #keeps original spacing, but only auroral altitudes to source at z=700km
+    z = z[z <= 700] #keeps original spacing, but with heights less than source at 700km
 #%% energy of beams
     if special_grid.lower()=='transcar':
         E = logspace(1.72,4.25,num=33,base=10)
     else:
-        E = logspace(1.69,4.,num=81,base=10)
+        E = logspace(1.72,4.25,num=81,base=10)
 
     return z,E

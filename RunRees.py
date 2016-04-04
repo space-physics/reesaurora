@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-
 from dateutil.parser import parse
-from numpy import array,arange,tile,logspace
 from matplotlib.pyplot import show
 import seaborn as sns
 sns.color_palette(sns.color_palette("cubehelix"))
 sns.set(context='talk', style='whitegrid',font_scale=1.5,
         rc={'image.cmap': 'cubehelix_r'}) #for contour
+from numpy import array
 #
 from reesaurora.rees_model import (reesiono,loadaltenergrid,lambda_comp,albedo,
                                    PitchAngle_range, energy_deg)
 from reesaurora.plots import fig7,fig8,fig11, fig12, fig13, plotA
 from gridaurora.writeeigen import writeeigen
 from gridaurora.solarangle import solarzenithangle
-from msise00.runmsis import rungtd1d
 #
 isotropic=True
 """
@@ -121,7 +119,7 @@ if __name__ == '__main__':
     p.add_argument('--nalt',help='Number of points in altitude grid',type=int,default=286)
     p.add_argument('-o','--outfn',help='give hdf5 filename to save eigenprofile production')
     p.add_argument('--isotropic',help='isotropic or non-isotropic pitch angle',action='store_true')
-    p.add_argument('--vlim',help='plotting limits on energy dep and production plots',nargs=2,type=float,default=(1e-3,1e4))
+    p.add_argument('--vlim',help='plotting limits on energy dep and production plots',nargs=2,type=float,default=(1e-7,1e1))
     p.add_argument('-v','--verbose',help='plots inline',action='count',default=0)
     p = p.parse_args()
 
@@ -138,6 +136,5 @@ if __name__ == '__main__':
     runrees(t,p.latlon[0],p.latlon[1], p.isotropic,  p.outfn,p.minalt,p.nalt,p.vlim,p.verbose)
 
     print('solar zenith angle  {:.1f} '.format(solarzenithangle(p.simtime,p.latlon[0],p.latlon[1],0.)[0]))
-
 
     show()
