@@ -12,7 +12,7 @@ ReesAurora
 ==========
 
 Rees-Sergienko-Ivanov model of excitation rates, relevant to auroral optical emissions
-inspired/based upon Gustavsson / Brandstrom et al `AIDA_Tools <https://github.com/scienceopen/AIDA-tools>`_.  
+inspired/based upon Gustavsson / Brandstrom et al `AIDA_Tools <https://github.com/scienceopen/AIDA-tools>`_
  
 Model designed for **100 - 10,000 eV**, and is essentially a *parameter fit* to more advanced
 models, making for convenient computation in this energy range with the PCs of the early 1990s. Today, much more advanced physics-based models are tractable on a PC.
