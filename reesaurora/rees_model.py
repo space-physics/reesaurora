@@ -23,7 +23,8 @@ except ImportError as e:
 species =['N2','O','O2']
 usesemeter=True
 
-def reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,verbose:int,datfn):
+#def #reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,verbose:int,datfn):
+def reesiono(T,altkm, E, glat, glon, isotropic, verbose,datfn):
     #other assertions covered inside modules
     assert isinstance(isotropic,bool)
 
