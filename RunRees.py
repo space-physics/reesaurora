@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 from dateutil.parser import parse
 from matplotlib.pyplot import show
 import seaborn as sns
