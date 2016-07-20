@@ -6,6 +6,12 @@ notifications:
 git:
     depth: 3
 
+addons:
+  apt:
+    packages:
+      - gfortran
+
+
 matrix:
   include:
     - os: osx
@@ -41,3 +47,4 @@ install:
 script: coverage run tests/test.py
 
 after_success: coveralls
+
