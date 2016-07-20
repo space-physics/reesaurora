@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
  ionization_profiles_from_flux - simple model for volume emission as function of altitude.
    After Sergienko and Ivanov 1993
