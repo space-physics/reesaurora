@@ -31,7 +31,7 @@ Wedlund et al "Electron Energy Spectra and Auroral Arcs" JGR 2013
 Sergienko and Ivanov 1993 "A new approach to calculate the excitation of atmospheric gases by auroral electron impact"
 """
 Eplot = array([50,100,500,1e3,5e3,1e4])
-llp = (65.,148.)
+llp = (65., -148.)
 tp = '2013-01-01T12Z'
 
 def runrees(t,glat,glon,isotropic,outfn,minalt,nalt,vlim,verbose):
