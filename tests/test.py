@@ -3,7 +3,7 @@ from reesaurora import Path
 from numpy import datetime64
 from numpy.testing import assert_allclose,run_module_suite
 #
-from reesaurora.rees_model import reesiono,loadaltenergrid
+from reesaurora import reesiono,loadaltenergrid
 
 tdir  = Path(__file__).parents[1]
 
