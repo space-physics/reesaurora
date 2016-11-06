@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from setuptools import setup
 import subprocess
 
@@ -10,7 +9,6 @@ except Exception as e:
 
 setup(name='reesaurora',
 	  description='Rees-Sergienko-Ivanov auroral model',
-	  author='Michael Hirsch',
 	  url='https://github.com/scienceopen/reesaurora',
    dependency_links = ['https://github.com/scienceopen/msise00/tarball/master#egg=msise00',
                       'https://github.com/scienceopen/gridaurora/tarball/master#egg=gridaurora'],
