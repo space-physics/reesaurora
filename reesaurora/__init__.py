@@ -1,9 +1,3 @@
-try:
-    from pathlib import Path
-    Path().expanduser()
-except (ImportError,AttributeError):
-    from pathlib2 import Path
-#
 """
  ionization_profiles_from_flux - simple model for volume emission as function of altitude.
    After Sergienko and Ivanov 1993
