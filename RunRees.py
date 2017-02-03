@@ -7,7 +7,7 @@ sns.set(context='talk', style='whitegrid',font_scale=1.5,
         rc={'image.cmap': 'cubehelix_r'}) #for contour
 from numpy import array
 #
-from reesaurora.rees_model import (reesiono,loadaltenergrid,lambda_comp,albedo,
+from reesaurora import (reesiono,loadaltenergrid,lambda_comp,albedo,
                                    PitchAngle_range, energy_deg)
 from reesaurora.plots import fig7,fig8,fig11, fig12, fig13, plotA
 from gridaurora.writeeigen import writeeigen

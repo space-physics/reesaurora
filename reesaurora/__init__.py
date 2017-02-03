@@ -1,9 +1,3 @@
-try:
-    from pathlib import Path
-    Path().expanduser()
-except (ImportError,AttributeError):
-    from pathlib2 import Path
-#
 """
  ionization_profiles_from_flux - simple model for volume emission as function of altitude.
    After Sergienko and Ivanov 1993
@@ -20,10 +14,6 @@ from scipy.interpolate import interp1d
 from gridaurora.ztanh import setupz
 from msise00 import rungtd1d
 from gridaurora.readApF107 import readmonthlyApF107
-try:
-    from glowaurora.runglow import glowalt
-except ImportError as e:
-    logging.error(e)
 
 species =['N2','O','O2']
 usesemeter=True
@@ -241,6 +231,7 @@ def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     if special_grid.lower()=='transcar':
         z = setupz(286,90,1.5,11.1475)
     elif special_grid.lower()=='glow':
+        from glowaurora.runglow import glowalt
         z = glowalt()
     else:
         z = setupz(Nalt,minalt,1.5,11.1475)

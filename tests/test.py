@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from reesaurora import Path
+from pathlib import Path
 from numpy import datetime64
 from numpy.testing import assert_allclose,run_module_suite
 #
