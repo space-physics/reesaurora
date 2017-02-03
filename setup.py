@@ -13,6 +13,6 @@ setup(name='reesaurora',
       'https://github.com/scienceopen/glowaurora/tarball/master#egg=glowaurora'
         ],
 	  install_requires=['msise00','gridaurora'],
-      extras_require = {'glowaurora':['glowaurora']}
+      extras_require = {'glowaurora':['glowaurora']},
       packages=['reesaurora'],
 	  )
