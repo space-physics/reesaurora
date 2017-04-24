@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-req = ['python-dateutil','nose','pytz','numpy','scipy','xarray','h5py','astropy','matplotlib','seaborn',]
+req = ['python-dateutil','nose','pytz','numpy','scipy','xarray','h5py','astropy','matplotlib','seaborn','pathlib2']
 pipreq=['msise00','gridaurora','glowaurora']
 # %%
 import pip
