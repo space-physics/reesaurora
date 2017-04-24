@@ -1,3 +1,5 @@
+.. image:: https://zenodo.org/badge/36744637.svg
+   :target: https://zenodo.org/badge/latestdoi/36744637
 .. image:: https://travis-ci.org/scivision/reesaurora.svg
     :target: https://travis-ci.org/scivision/reesaurora
 .. image:: https://coveralls.io/repos/scivision/reesaurora/badge.svg?branch=master
