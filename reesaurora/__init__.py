@@ -13,7 +13,7 @@ from scipy.interpolate import interp1d
 #
 from gridaurora.ztanh import setupz
 from msise00 import rungtd1d
-from gridaurora.readApF107 import readmonthlyApF107
+from gridaurora import readmonthlyApF107
 
 species =['N2','O','O2']
 usesemeter=True

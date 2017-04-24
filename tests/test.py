@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-from pathlib import Path
+try:
+    from pathlib import Path
+except ImportError:
+    from pathlib2 import Path
 from numpy import datetime64
 from numpy.testing import assert_allclose,run_module_suite
 #

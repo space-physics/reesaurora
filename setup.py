@@ -7,8 +7,8 @@ try:
     import conda.cli
     conda.cli.main('install',*req)
 except Exception as e:
-    pip.main(['install',*req])
-pip.main(['install',*pipreq])
+    pip.main(['install'] +req)
+pip.main(['install']+pipreq)
 # %%
 from setuptools import setup  # enables develop
 
@@ -16,7 +16,7 @@ setup(name='reesaurora',
       packages=['reesaurora'],
       author='Michael Hirsch, Ph.D',
       description='Model of Earth ionosphere.',
-      version='1.0.0',
+      version='1.0.1',
       url = 'https://github.com/scivision/reesaurora',
       classifiers=[
       'Intended Audience :: Science/Research',
