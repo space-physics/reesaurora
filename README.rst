@@ -1,25 +1,22 @@
-.. image:: https://travis-ci.org/scienceopen/reesaurora.svg
-    :target: https://travis-ci.org/scienceopen/reesaurora
+.. image:: https://travis-ci.org/scivision/reesaurora.svg
+    :target: https://travis-ci.org/scivision/reesaurora
+.. image:: https://coveralls.io/repos/scivision/reesaurora/badge.svg?branch=master
+    :target: https://coveralls.io/github/scivision/reesaurora?branch=master
 
-.. image:: https://coveralls.io/repos/scienceopen/reesaurora/badge.svg?branch=master&service=github 
-    :target: https://coveralls.io/github/scienceopen/reesaurora?branch=master
-
-.. image:: https://codeclimate.com/github/scienceopen/reesaurora/badges/gpa.svg
-   :target: https://codeclimate.com/github/scienceopen/reesaurora
-   :alt: Code Climate    
 ==========
 ReesAurora
 ==========
 
 Rees-Sergienko-Ivanov model of excitation rates, relevant to auroral optical emissions
-inspired/based upon Gustavsson / Brandstrom et al `AIDA_Tools <https://github.com/scienceopen/AIDA-tools>`_
- 
+inspired/based upon Gustavsson / Brandstrom et al `AIDA_Tools <https://github.com/scivision/AIDA-tools>`_
+
 Model designed for **100 - 10,000 eV**, and is essentially a *parameter fit* to more advanced
-models, making for convenient computation in this energy range with the PCs of the early 1990s. Today, much more advanced physics-based models are tractable on a PC.
+models, making for convenient computation in this energy range with the PCs of the early 1990s.
+Today, much more advanced physics-based models are tractable on a PC.
 
-Uses MSISE-00 to generate O, O\ :sub:`2`, N\ :sub:`2` densities, and models outcome of primary electron precipitation on this neutral background. 
+Uses MSISE-00 to generate O, O\ :sub:`2`, N\ :sub:`2` densities, and models outcome of primary electron precipitation on this neutral background.
 
-.. image:: test/demo.png
+.. image:: tests/demo.png
    :alt: volume production rate
 
 .. contents::

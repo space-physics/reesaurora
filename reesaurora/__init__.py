@@ -38,7 +38,7 @@ def reesiono(T,altkm, E, glat, glon, isotropic, verbose,datfn):
 
     Qt = DataArray(data=empty((T.size,altkm.size,E.size)),
                    coords=[T,altkm,E],
-                   dims=['time','altkm','energy'])
+                   dims=['time','alt_km','energy'])
 #%% loop
     for t in T:
         f107Ap=readmonthlyApF107(t)
@@ -46,9 +46,7 @@ def reesiono(T,altkm, E, glat, glon, isotropic, verbose,datfn):
         f107  = f107Ap['f107o']
         ap    = (f107Ap['Apo'],)*7
 
-        dens,temp = rungtd1d(t,altkm,glat,glon,f107a,f107,ap,
-                             mass=48.,
-                             tselecopts=array([1,1,1,1,1,1,1,1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],float)) #leave mass=48. !
+        dens,temp = rungtd1d(t,altkm,glat,glon,f107a,f107,ap)
 
         Q = ionization_profile_from_flux(E,dens,isotropic,datfn,verbose)
         Qt.loc[t,...] = Q
@@ -63,7 +61,7 @@ def ionization_profile_from_flux(E,dens,isotropic,datfn,verbose):
     if ((E<50.) | (E>1e4)).any():
         logging.warning('Sergienko & Ivanov 1993 covered E \in [100,10000] eV')
 
-    if (dens.altkm>700.).any():
+    if (dens.alt_km>700.).any():
         logging.error('Sergienko & Ivanov 1993 assumed electron source was at altitude 700km.')
 
 #%% Table 1 Sergienko & Ivanov 1993, rightmost column
@@ -96,7 +94,7 @@ def energy_deg(E,isotropic,dens):
 
     N_alt0 = atmp.shape[0]
     zetm = zeros(N_alt0)
-    dH = gradient(atmp.altkm)
+    dH = gradient(atmp.alt_km)
     for i in range(N_alt0-1,0,-1): #careful with these indices!
         dzetm = (atmp[i]+atmp[i-1])*dH[i-1]*1e5/2
         zetm[i-1] = zetm[i] + dzetm
@@ -201,8 +199,8 @@ def partition(dens,k,cost):
     N = dens.loc[:,species]/1e6  #[cm^-3]
 
     num=DataArray(data=empty((N.shape[0],len(species))),
-                  coords=[N.altkm,species],
-                  dims=['altkm','species'])
+                  coords=[N.alt_km,species],
+                  dims=['alt_km','species'])
     for i in species:
         num.loc[:,i] = k[i]*N.loc[:,i]
 

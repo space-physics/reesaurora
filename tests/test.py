@@ -17,7 +17,7 @@ def test_reesiono():
 #%%
     Q = reesiono(t,z,E,glat,glon,isotropic,datfn=tdir/'data/SergienkoIvanov.h5',verbose=0)
 #%%
-    assert_allclose(Q.altkm.values,z)
+    assert_allclose(Q.alt_km.values,z)
     assert_allclose(Q.energy.values,E)
     assert Q.time[0] == datetime64(t),'times didnt match up'
 
