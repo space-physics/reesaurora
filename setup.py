@@ -25,4 +25,5 @@ setup(name='reesaurora',
       'Topic :: Scientific/Engineering :: Atmospheric Science',
       'Programming Language :: Python :: 3',
       'Programming Language :: Python',],
+      install_requires=req+pipreq,
 	  )
