@@ -1,14 +1,6 @@
 #!/usr/bin/env python
-req = ['python-dateutil','nose','pytz','numpy','scipy','xarray','h5py','astropy','matplotlib','seaborn','pathlib2']
-pipreq=['msise00','gridaurora','glowaurora']
-# %%
-import pip
-try:
-    import conda.cli
-    conda.cli.main('install',*req)
-except Exception as e:
-    pip.main(['install'] +req)
-pip.main(['install']+pipreq)
+req = ['python-dateutil','nose','pytz','numpy','scipy','xarray','h5py','astropy','matplotlib','seaborn',
+       'msise00','gridaurora','glowaurora']
 # %%
 from setuptools import setup  # enables develop
 
@@ -25,5 +17,6 @@ setup(name='reesaurora',
       'Topic :: Scientific/Engineering :: Atmospheric Science',
       'Programming Language :: Python :: 3',
       'Programming Language :: Python',],
-      install_requires=req+pipreq,
+      install_requires=req,
+      python_requires='>=3.6',
 	  )
