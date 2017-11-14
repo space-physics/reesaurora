@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-req = ['python-dateutil','nose','pytz','numpy','scipy','xarray','h5py','astropy','matplotlib','seaborn',
+req = ['python-dateutil','nose','pytz','numpy','scipy','xarray',
        'msise00','gridaurora','glowaurora']
 # %%
-from setuptools import setup  # enables develop
+from setuptools import setup 
 
 setup(name='reesaurora',
       packages=['reesaurora'],
@@ -19,4 +19,5 @@ setup(name='reesaurora',
       'Programming Language :: Python',],
       install_requires=req,
       python_requires='>=3.6',
+      extras_require={'plot':['matplotlib','seaborn'],},
 	  )

@@ -1,9 +1,16 @@
 .. image:: https://zenodo.org/badge/36744637.svg
    :target: https://zenodo.org/badge/latestdoi/36744637
+   
 .. image:: https://travis-ci.org/scivision/reesaurora.svg
     :target: https://travis-ci.org/scivision/reesaurora
+    
 .. image:: https://coveralls.io/repos/scivision/reesaurora/badge.svg?branch=master
     :target: https://coveralls.io/github/scivision/reesaurora?branch=master
+    
+.. image:: https://api.codeclimate.com/v1/badges/fae4ee1dfb20a766ebce/maintainability
+   :target: https://codeclimate.com/github/scivision/reesaurora/maintainability
+   :alt: Maintainability
+
 
 ==========
 ReesAurora
