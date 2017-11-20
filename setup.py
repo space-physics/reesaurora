@@ -2,10 +2,10 @@
 req = ['python-dateutil','nose','pytz','numpy','scipy','xarray',
        'msise00','gridaurora','glowaurora']
 # %%
-from setuptools import setup 
+from setuptools import setup,find_packages
 
 setup(name='reesaurora',
-      packages=['reesaurora'],
+      packages=find_packages(),
       author='Michael Hirsch, Ph.D',
       description='Model of Earth ionosphere.',
       version='1.0.1',
