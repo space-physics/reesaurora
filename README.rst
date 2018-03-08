@@ -30,14 +30,19 @@ Uses MSISE-00 to generate O, O\ :sub:`2`, N\ :sub:`2` densities, and models outc
 
 .. contents::
 
-Installation
-============
-::
 
-  pip install -e .
+
+Install
+=======
+
+Requires a Fortran compiler, such as ``gfortran``.  
+Any Fortran compiler should work::
+
+    pip install -e .
+    
 
 Example
-==================
+========
 ::
 
   python RunRees.py -t 2011-03-15T12:34:56Z -c 65 -148

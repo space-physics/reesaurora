@@ -12,6 +12,7 @@ from numpy import (array,linspace,diff,empty,append,log10,exp,nan,arange,
 from scipy.interpolate import interp1d
 #
 from gridaurora.ztanh import setupz
+from gridaurora.zglow import glowalt
 from msise00 import rungtd1d
 from gridaurora import readmonthlyApF107
 
@@ -229,7 +230,6 @@ def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     if special_grid.lower()=='transcar':
         z = setupz(286,90,1.5,11.1475)
     elif special_grid.lower()=='glow':
-        from glowaurora.runglow import glowalt
         z = glowalt()
     else:
         z = setupz(Nalt,minalt,1.5,11.1475)

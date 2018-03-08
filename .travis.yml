@@ -7,12 +7,7 @@ python:
 os:
   - linux
 
-dist: trusty
-group: edge
-  
-
-notifications:
-  email: false
+group: travis_latest
 
 git:
   depth: 3
@@ -22,12 +17,12 @@ addons:
     packages:
       - gfortran
 
-before_install:
-  - pip -q install coveralls
 
-install: pip -q install -e .
+install: pip -q install -e .[tests]
 
-script: coverage run tests/test.py -v
+script: pytest -v
 
-after_success: coveralls
+after_success: 
+  - coverage run tests/test_all.py -v
+  - coveralls
 
