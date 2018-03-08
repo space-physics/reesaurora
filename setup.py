@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 install_requires = ['python-dateutil','pytz','numpy','scipy','xarray',
-       'msise00','gridaurora']
+                    'msise00','gridaurora']
 tests_require=['pytest','nose','coveralls']
 # %%
 from setuptools import setup,find_packages
@@ -10,7 +10,7 @@ setup(name='reesaurora',
       author='Michael Hirsch, Ph.D',
       description='Model of Earth ionosphere.',
       long_description=open('README.rst').read(),
-      version='1.0.2',
+      version='1.0.3',
       url = 'https://github.com/scivision/reesaurora',
       classifiers=[
       'Development Status :: 4 - Beta',

@@ -7,8 +7,7 @@ import logging
 from dateutil.parser import parse
 from datetime import datetime
 from xarray import DataArray
-from numpy import (array,linspace,diff,empty,append,log10,exp,nan,arange,
-                   logspace,atleast_1d,ndarray,zeros,gradient)
+import numpy as np
 from scipy.interpolate import interp1d
 #
 from gridaurora.ztanh import setupz
@@ -29,7 +28,7 @@ def reesiono(T,altkm, E, glat, glon, isotropic, verbose,datfn):
 
     if isinstance(T,str):
         T=parse(T)
-    T = atleast_1d(T)
+    T = np.atleast_1d(T)
     assert isinstance(T[0],datetime)
 #%% MSIS
     if isotropic:
@@ -37,15 +36,15 @@ def reesiono(T,altkm, E, glat, glon, isotropic, verbose,datfn):
     else:
         logging.debug('field-aligned pitch angle flux')
 
-    Qt = DataArray(data=empty((T.size,altkm.size,E.size)),
+    Qt = DataArray(data=np.empty((T.size,altkm.size,E.size)),
                    coords=[T,altkm,E],
                    dims=['time','alt_km','energy'])
 #%% loop
     for t in T:
         f107Ap=readmonthlyApF107(t)
-        f107a = f107Ap['f107s']
-        f107  = f107Ap['f107o']
-        ap    = (f107Ap['Apo'],)*7
+        f107a = f107Ap.loc['f107s'].item()
+        f107  = f107Ap.loc['f107o'].item()
+        ap    = (f107Ap.loc['Apo'].item(),)*7
 
         dens,temp = rungtd1d(t,altkm,glat,glon,f107a,f107,ap)
 
@@ -53,6 +52,7 @@ def reesiono(T,altkm, E, glat, glon, isotropic, verbose,datfn):
         Qt.loc[t,...] = Q
 
     return Qt
+
 
 def ionization_profile_from_flux(E,dens,isotropic,datfn,verbose):
     """
@@ -71,14 +71,14 @@ def ionization_profile_from_flux(E,dens,isotropic,datfn,verbose):
 #%% Eqn 7, Figure 6
     k = {'N2':1.,'O2':0.7,'O':0.4}
 
-    dE = diff(E); dE = append(dE,dE[-1])
+    dE = np.diff(E); dE = np.append(dE,dE[-1])
 
     Peps = partition(dens,k,E_cost_ion) #Nalt x Nspecies
 
 #%% First calculate the energy deposition as a function of altitude
-    qE = empty((dens.shape[0],E.size)) # Nalt x Nenergy
+    qE = np.empty((dens.shape[0],E.size)) # Nalt x Nenergy
     for i,(e,d) in enumerate(zip(E,dE)):
-        Ebins = linspace(e,e+d,20)
+        Ebins = np.linspace(e,e+d,20)
         #for isotropic or field aligned electron beams
         Am = energy_deg(Ebins,isotropic,dens)
 
@@ -87,6 +87,7 @@ def ionization_profile_from_flux(E,dens,isotropic,datfn,verbose):
         qE[:,i] = q
     return qE
 
+
 def energy_deg(E,isotropic,dens):
     """
     energy degradation of precipitating electrons
@@ -94,15 +95,15 @@ def energy_deg(E,isotropic,dens):
     atmp = dens.loc[:,'Total']/1e3
 
     N_alt0 = atmp.shape[0]
-    zetm = zeros(N_alt0)
-    dH = gradient(atmp.alt_km)
+    zetm = np.zeros(N_alt0)
+    dH = np.gradient(atmp.alt_km)
     for i in range(N_alt0-1,0,-1): #careful with these indices!
         dzetm = (atmp[i]+atmp[i-1])*dH[i-1]*1e5/2
         zetm[i-1] = zetm[i] + dzetm
 
     alb = albedo(E,isotropic)
 
-    D_en = gradient(E)
+    D_en = np.gradient(E)
     r = PitchAngle_range(E,isotropic)
 
     hi = zetm / r[:,None]
@@ -117,23 +118,27 @@ def energy_deg(E,isotropic,dens):
     Am[1:-2,:] *= (D_en[1:-2]+D_en[0:-3])[:,None]/2.
     return Am
 
+
 def PitchAngle_range(E,isotropic):
     pr= 1.64e-6 if isotropic else 2.16e-6
     return pr * (E/1e3)**1.67 * (1 + 9.48e-2 * E**-1.57)
 
+
 def albedo(E,isotropic):
+    """ ionospheric albedo model"""
     isotropic = int(isotropic)
-    logE_p=append(1.69, arange(1.8,3.7+0.1,0.1))
-    Param=array(
+    logE_p = np.append(1.69, np.arange(1.8,3.7+0.1,0.1))
+    Param=np.array(
       [[0.352, 0.344, 0.334, 0.320, 0.300, 0.280, 0.260, 0.238, 0.218, 0.198, 0.180, 0.160, 0.143, 0.127, 0.119, 0.113, 0.108, 0.104, 0.102, 0.101, 0.100],
        [0.500, 0.492, 0.484, 0.473, 0.463, 0.453, 0.443, 0.433, 0.423, 0.413, 0.403, 0.395, 0.388, 0.379, 0.378, 0.377, 0.377, 0.377, 0.377, 0.377, 0.377]])
-    logE=log10(E)
+    logE=np.log10(E)
 
-    falb=interp1d(logE_p,Param[isotropic,:],kind='linear',bounds_error=False,fill_value=nan)
+    falb=interp1d(logE_p,Param[isotropic,:],kind='linear',bounds_error=False,fill_value=np.nan)
     alb = falb(logE)
     alb[logE>logE_p[-1]] = Param[isotropic,-1]
 
     return alb
+
 
 def lambda_comp(hi,E,isotropic):
     """
@@ -141,8 +146,8 @@ def lambda_comp(hi,E,isotropic):
     for isotropic and field-aligned precipitation
     """
 #%% field-aligned
-    logE_m= append(1.69,arange(1.8,3.7+0.1,0.1))
-    Param_m =array(
+    logE_m= np.append(1.69,np.arange(1.8,3.7+0.1,0.1))
+    Param_m =np.array(
         [[1.43,1.51,1.58,1.62,1.51,1.54,1.18,1.02, 0.85, 0.69, 0.52,0.35,0.21,0.104,0.065,0.05,0.04,0.03,0.03, 0.025,0.021],
          [0.83,0.77,0.72,0.67,0.63,0.59,0.56,0.525,0.495,0.465,0.44,0.42,0.40,0.386,0.37, 0.36,0.35,0.34,0.335,0.325,0.32],
          [-0.025,-0.030, -0.040, -0.067, -0.105, -0.155, -0.210, -0.275, -0.36, -0.445, -0.51,-0.61, -0.69, -0.77, -0.83, -0.865, -0.90,-0.92, -0.935, -0.958, -0.96],
@@ -152,15 +157,15 @@ def lambda_comp(hi,E,isotropic):
     """
         interpolated over energies from 48.9 eV to 1000 eV
     """
-    logE_i=append(1.69, arange(1.8,3.0+0.1,0.1))
-    Param_i =array(
+    logE_i=np.append(1.69, np.arange(1.8,3.0+0.1,0.1))
+    Param_i =np.array(
         [[0.041, 0.051, 0.0615, 0.071, 0.081, 0.09, 0.099, 0.1075, 0.116, 0.113, 0.13, 0.136, 0.139, 0.142],
          [1.07, 1.01, 0.965, 0.9, 0.845, 0.805, 0.77, 0.735, 0.71, 0.69, 0.67, 0.665, 0.66, 0.657],
          [-0.064, -0.1, -0.132, -0.171, -0.2, -0.221, -0.238, -0.252, -0.261, -0.267, -0.271, -0.274, -0.276, -0.277],
          [-1.054, -0.95, -0.845, -0.72, -0.63, -0.54, -0.475, -0.425, -0.38, -0.345, -0.319, -0.295, -0.28, -0.268]]
          )
 
-    logE=log10(E)
+    logE=np.log10(E)
 
     if isotropic:
         P = Param_i
@@ -171,21 +176,22 @@ def lambda_comp(hi,E,isotropic):
         LE = logE_m
         Emax = 5000.
 #%% interpolate
-    fC=interp1d(LE,P,kind='linear',axis=1,bounds_error=False,fill_value=nan)
+    fC= interp1d(LE,P,kind='linear',axis=1,bounds_error=False,fill_value=np.nan)
     C = fC(logE)
 #%% low energy
     lam = ((C[0,:][:,None]*hi + C[1,:][:,None]) *
-            exp(C[2,:][:,None]*hi**2 + C[3,:][:,None]*hi))
+           np. exp(C[2,:][:,None]*hi**2 + C[3,:][:,None]*hi))
 #%% high energy
     badind = E>Emax
     lam[badind] = (
                    (P[0,-1]*hi[badind] + P[1,-1]) *
-                   exp(P[2,-1]*hi[badind]**2 + P[3,-1]*hi[badind])
+                   np.exp(P[2,-1]*hi[badind]**2 + P[3,-1]*hi[badind])
                    )
 
     return lam
 
-def partition(dens,k,cost):
+
+def partition(dens, k, cost):
     """
     Implement Eqn 7 Sergienko 1993
 
@@ -199,7 +205,7 @@ def partition(dens,k,cost):
     # m^-3 /1e6 = cm^-3
     N = dens.loc[:,species]/1e6  #[cm^-3]
 
-    num=DataArray(data=empty((N.shape[0],len(species))),
+    num=DataArray(data=np.empty((N.shape[0],len(species))),
                   coords=[N.alt_km,species],
                   dims=['alt_km','species'])
     for i in species:
@@ -237,8 +243,8 @@ def loadaltenergrid(minalt=90,Nalt=286,special_grid=''):
     z = z[z <= 700] #keeps original spacing, but with heights less than source at 700km
 #%% energy of beams
     if special_grid.lower()=='transcar':
-        E = logspace(1.72,4.25,num=33,base=10)
+        E = np.logspace(1.72,4.25,num=33,base=10)
     else:
-        E = logspace(1.72,4.25,num=81,base=10)
+        E = np.logspace(1.72,4.25,num=81,base=10)
 
     return z,E
