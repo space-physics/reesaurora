@@ -13,7 +13,6 @@ from scipy.interpolate import interp1d
 from gridaurora.ztanh import setupz
 from gridaurora.zglow import glowalt
 from msise00 import rungtd1d
-from gridaurora import readmonthlyApF107
 
 species =['N2','O','O2']
 usesemeter=True
@@ -41,12 +40,7 @@ def reesiono(T,altkm, E, glat, glon, isotropic, verbose,datfn):
                    dims=['time','alt_km','energy'])
 #%% loop
     for t in T:
-        f107Ap=readmonthlyApF107(t)
-        f107a = f107Ap.loc['f107s'].item()
-        f107  = f107Ap.loc['f107o'].item()
-        ap    = (f107Ap.loc['Apo'].item(),)*7
-
-        dens,temp = rungtd1d(t,altkm,glat,glon,f107a,f107,ap)
+        dens,temp = rungtd1d(t, altkm, glat, glon)
 
         Q = ionization_profile_from_flux(E,dens,isotropic,datfn,verbose)
         Qt.loc[t,...] = Q
