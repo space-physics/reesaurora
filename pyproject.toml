@@ -1,3 +1,0 @@
-[build-system]
-requires = ['python-dateutil','nose','pytz','numpy','scipy','xarray',
- 'msise00','gridaurora'] 
