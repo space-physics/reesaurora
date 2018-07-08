@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-isotropic=False
+isotropic = False
 """
 Discussion:
 We need to know how incident flux from the magnetosphere ionizes various species
@@ -17,7 +17,7 @@ Rees 1989
 Wedlund et al "Electron Energy Spectra and Auroral Arcs" JGR 2013
 Sergienko and Ivanov 1993 "A new approach to calculate the excitation of atmospheric gases by auroral electron impact"
 """
-#def reesmodel(dtime,altkm,E,glat,glon,f107a,f107,ap,mass,matfn,h5fn):
+# def reesmodel(dtime,altkm,E,glat,glon,f107a,f107,ap,mass,matfn,h5fn):
 #
 #    dens,temp = rungtd1d(dtime,altkm,glat,glon,f107a,f107,ap,mass)
 #    rho = dens['Total'].values
