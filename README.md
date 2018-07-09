@@ -1,6 +1,7 @@
 [![image](https://zenodo.org/badge/36744637.svg)](https://zenodo.org/badge/latestdoi/36744637)
 [![image](https://travis-ci.org/scivision/reesaurora.svg)](https://travis-ci.org/scivision/reesaurora)
 [![Coverage Status](https://coveralls.io/repos/github/scivision/reesaurora/badge.svg?branch=master)](https://coveralls.io/github/scivision/reesaurora?branch=master)
+[![Build status](https://ci.appveyor.com/api/projects/status/r90wkqjjhtefltxt?svg=true)](https://ci.appveyor.com/project/scivision/reesaurora)
 [![Maintainability](https://api.codeclimate.com/v1/badges/fae4ee1dfb20a766ebce/maintainability)](https://codeclimate.com/github/scivision/reesaurora/maintainability)
 [![pypi versions](https://img.shields.io/pypi/pyversions/reesaurora.svg)](https://pypi.python.org/pypi/reesaurora)
 [![pypi format](https://img.shields.io/pypi/format/reesaurora.svg)](https://pypi.python.org/pypi/reesaurora)
@@ -33,7 +34,7 @@ Any Fortran compiler should work:
 
 ## Example
 
-    ReesSergienkoIvanov -t 2011-03-15T12:34:56Z -c 65 -148
+    ReesSergienkoIvanov -t 2011-03-15T12:34:56 -c 65 -148
 
 * `-o` specify output file (HDF5) 
 * `-c` specify geographic lat,lon
