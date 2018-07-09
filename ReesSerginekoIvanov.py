@@ -62,12 +62,13 @@ def makefig7(datfn: Path):
 
     iono = msise00.rungtd1d(tp, z, llp[0], llp[1], f107a=150., f107=150., ap=4.,
                             mass=48.,  # leave mass=48. !
-                            tselecopts=np.array([1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], float))
+                            tselecopts=np.array([1, 1, 1, 1, 1, 1, 1, 1, -1,
+                                                 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], float))
 
     # NOTE kg m^-2 *10 = g cm^-2
     rho = iono.loc[:, 'Total'] * 10.  # mass density of atmosphere [g cm^-3]
     # eqn A1 Sergienko 1993
-    W = energy_deg(Eplot, isotropic, rho, datfn, verbose=0)
+    W = energy_deg(Eplot, isotropic, rho)
 
     fig7(W, z, Eplot)
 
@@ -78,7 +79,7 @@ def makefig8(datfn: Path):
     E = np.array([300, 500, 1000, 5000, 10000])
 
     Q = reesiono('2013-01-01T12Z', z, E, glat=65., glon=-148.,
-                 isotropic=False, verbose=0, datfn=datfn)
+                 isotropic=False, verbose=False, datfn=datfn)
 
     fig8(Q)
 

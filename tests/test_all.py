@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 from pathlib import Path
+import xarray
 from numpy import datetime64
 from numpy.testing import assert_allclose
 import pytest
 #
 from reesaurora import reesiono, loadaltenergrid
 
-tdir = Path(__file__).parents[1]
+R = Path(__file__).resolve().parents[1]
 
 
 def test_reesiono():
@@ -19,7 +20,8 @@ def test_reesiono():
 # %%
     z, E = loadaltenergrid(minalt, nalt)  # altitude grid, Energy Grid
 # %%
-    Q = reesiono(t, z, E, glat, glon, isotropic, datfn=tdir/'data/SergienkoIvanov.h5', verbose=0)
+    Q = reesiono(t, z, E, glat, glon, isotropic, datfn=R / 'data/SergienkoIvanov.h5', verbose=False)
+    assert isinstance(Q, xarray.DataArray)
 # %%
     assert_allclose(Q.alt_km.values, z)
     assert_allclose(Q.energy.values, E)

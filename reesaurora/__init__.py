@@ -7,10 +7,10 @@ from pathlib import Path
 import logging
 from dateutil.parser import parse
 from datetime import datetime
-from xarray import DataArray
+import xarray
 import numpy as np
 from scipy.interpolate import interp1d
-from typing import Union
+from typing import Union, Tuple
 from gridaurora.ztanh import setupz
 from gridaurora.zglow import glowalt
 from msise00 import rungtd1d
@@ -23,7 +23,7 @@ usesemeter = True
 
 def reesiono(T: Union[str, datetime], altkm: np.ndarray, E: np.ndarray,
              glat: float, glon: float, isotropic: bool, verbose: bool,
-             datfn: Path):
+             datfn: Path) -> xarray.DataArray:
     # other assertions covered inside modules
     assert isinstance(isotropic, bool)
 
@@ -32,19 +32,19 @@ def reesiono(T: Union[str, datetime], altkm: np.ndarray, E: np.ndarray,
 
     if isinstance(T, str):
         T = parse(T)
-    T = np.atleast_1d(T)
-    assert isinstance(T[0], datetime)
+    time = np.atleast_1d(T)
+    assert isinstance(time[0], datetime)
 # %% MSIS
     if isotropic:
         logging.debug('isotropic pitch angle flux')
     else:
         logging.debug('field-aligned pitch angle flux')
 
-    Qt = DataArray(data=np.empty((T.size, altkm.size, E.size)),
-                   coords=[T, altkm, E],
-                   dims=['time', 'alt_km', 'energy'])
+    Qt = xarray.DataArray(data=np.empty((time.size, altkm.size, E.size)),
+                          coords=[time, altkm, E],
+                          dims=['time', 'alt_km', 'energy'])
 # %% loop
-    for t in T:
+    for t in time:
         iono = rungtd1d(t, altkm, glat, glon)
 
         Q = ionization_profile_from_flux(E, iono, isotropic, datfn, verbose)
@@ -53,7 +53,8 @@ def reesiono(T: Union[str, datetime], altkm: np.ndarray, E: np.ndarray,
     return Qt
 
 
-def ionization_profile_from_flux(E, iono, isotropic, datfn, verbose):
+def ionization_profile_from_flux(E: np.ndarray, iono: xarray.Dataset,
+                                 isotropic: bool, datfn: Path, verbose: bool) -> np.ndarray:
     """
     simple model for volume emission as function of altitude.
     After Sergienko and Ivanov 1993 and Gustavsson AIDA_TOOLs
@@ -76,7 +77,7 @@ def ionization_profile_from_flux(E, iono, isotropic, datfn, verbose):
     Peps = partition(iono, k, E_cost_ion)  # Nalt x Nspecies
 
 # %% First calculate the energy deposition as a function of altitude
-    qE = np.empty((iono.shape[0], E.size))  # Nalt x Nenergy
+    qE = np.empty((iono.alt_km.size, E.size))  # Nalt x Nenergy
     for i, (e, d) in enumerate(zip(E, dE)):
         Ebins = np.linspace(e, e+d, 20)
         # for isotropic or field aligned electron beams
@@ -85,16 +86,17 @@ def ionization_profile_from_flux(E, iono, isotropic, datfn, verbose):
         q = Am.sum(axis=0)  # sum over the interim energy sub-bins
         q *= Peps.sum(axis=1)  # effect of ion chemistry at each altitude
         qE[:, i] = q
+
     return qE
 
 
-def energy_deg(E, isotropic, dens):
+def energy_deg(E: np.ndarray, isotropic: bool, iono: xarray.Dataset) -> np.ndarray:
     """
     energy degradation of precipitating electrons
     """
-    atmp = dens.loc[:, 'Total']/1e3
+    atmp = iono['Total'].squeeze() / 1e3
 
-    N_alt0 = atmp.shape[0]
+    N_alt0 = atmp.alt_km.size
     zetm = np.zeros(N_alt0)
     dH = np.gradient(atmp.alt_km)
     for i in range(N_alt0-1, 0, -1):  # careful with these indices!
@@ -102,30 +104,37 @@ def energy_deg(E, isotropic, dens):
         zetm[i-1] = zetm[i] + dzetm
 
     alb = albedo(E, isotropic)
+    assert E.shape == alb.shape
 
-    D_en = np.gradient(E)
+    dE = np.gradient(E)
     r = PitchAngle_range(E, isotropic)
+    assert E.shape == r.shape
 
     hi = zetm / r[:, None]
+    assert hi.shape == (E.size, zetm.size)
 
     Lambda = lambda_comp(hi, E, isotropic)
 
-    Am = atmp.values * Lambda * E[:, None] * (1-alb[:, None])/r[:, None]
+    Am = atmp.values * Lambda * E[:, None] * (1-alb[:, None]) / r[:, None]
+    assert Am.shape == (E.size, zetm.size)
 
-    Am[0, :] *= D_en[0]/2.
-    Am[-1, :] *= D_en[-1]/2.
-    Am[1:-2, :] *= (D_en[1:-2]+D_en[0:-3])[:, None]/2.
+    Am[0, :] *= dE[0]/2.
+    Am[-1, :] *= dE[-1]/2.
+    Am[1:-2, :] *= (dE[1:-2] + dE[0:-3])[:, None]/2.
+
     return Am
 
 
-def PitchAngle_range(E, isotropic):
+def PitchAngle_range(E: np.ndarray, isotropic: bool) -> np.ndarray:
     pr = 1.64e-6 if isotropic else 2.16e-6
     return pr * (E/1e3)**1.67 * (1 + 9.48e-2 * E**-1.57)
 
 
-def albedo(E, isotropic):
+def albedo(E: np.ndarray, isotropic: Union[int, bool]) -> np.ndarray:
     """ ionospheric albedo model"""
     isotropic = int(isotropic)
+    assert isotropic in (0, 1)
+
     logE_p = np.append(1.69, np.arange(1.8, 3.7+0.1, 0.1))
     Param = np.array(
         [[0.352, 0.344, 0.334, 0.320, 0.300, 0.280, 0.260, 0.238, 0.218, 0.198,
@@ -141,11 +150,12 @@ def albedo(E, isotropic):
     return alb
 
 
-def lambda_comp(hi, E, isotropic):
+def lambda_comp(hi: np.ndarray, E: np.ndarray, isotropic: bool) -> np.ndarray:
     """
     interpolated over energies from 48.9 eV to 5012 eV
     for isotropic and field-aligned precipitation
     """
+
 # %% field-aligned
     logE_m = np.append(1.69, np.arange(1.8, 3.7+0.1, 0.1))
     Param_m = np.array(
@@ -185,7 +195,9 @@ def lambda_comp(hi, E, isotropic):
     C = fC(logE)
 # %% low energy
     lam = ((C[0, :][:, None]*hi + C[1, :][:, None]) *
-           np. exp(C[2, :][:, None]*hi**2 + C[3, :][:, None]*hi))
+           np.exp(C[2, :][:, None]*hi**2 + C[3, :][:, None]*hi))
+
+    assert lam.shape == hi.shape
 # %% high energy
     badind = E > Emax
     lam[badind] = (
@@ -196,7 +208,7 @@ def lambda_comp(hi, E, isotropic):
     return lam
 
 
-def partition(dens, k, cost):
+def partition(iono: xarray.Dataset, k: np.ndarray, cost: np.ndarray) -> xarray.DataArray:
     """
     Implement Eqn 7 Sergienko 1993
 
@@ -208,28 +220,28 @@ def partition(dens, k, cost):
     P_i(h) / epsilon
     """
     # m^-3 /1e6 = cm^-3
-    N = dens.loc[:, species]/1e6  # [cm^-3]
+    N = iono[species] / 1e6  # [cm^-3]
 
-    num = DataArray(data=np.empty((N.shape[0], len(species))),
-                    coords=[N.alt_km, species],
-                    dims=['alt_km', 'species'])
+    num = xarray.DataArray(data=np.empty((N.alt_km.size, len(species))),
+                           coords=[N.alt_km, species],
+                           dims=['alt_km', 'species'])
     for i in species:
-        num.loc[:, i] = k[i]*N.loc[:, i]
+        num.loc[:, i] = k[i] * N[i].squeeze()
 
     den = num.sum('species')
 
-    P = num.copy()
-    for i in species:
-        P.loc[:, i] = num.loc[:, i]/den
+#    P = num.copy()
+#    for i in species:
+#        P.loc[:, i] = num.loc[:, i] / den
 # %% energization cost
     Peps = num.copy()
     for i in species:
-        Peps.loc[:, i] = P.loc[:, i] / cost[i]
+        Peps.loc[:, i] = num.loc[:, i] / den / cost[i]
 
     return Peps
 
 
-def loadaltenergrid(minalt=90, Nalt=286, special_grid=''):
+def loadaltenergrid(minalt: float=90, Nalt: int=286, special_grid: str='') -> Tuple[np.ndarray, np.ndarray]:
     """
     makes a tanh-spaced grid (see setupz for info)
 
