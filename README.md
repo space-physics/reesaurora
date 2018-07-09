@@ -2,6 +2,8 @@
 [![image](https://travis-ci.org/scivision/reesaurora.svg)](https://travis-ci.org/scivision/reesaurora)
 [![image](https://coveralls.io/repos/scivision/reesaurora/badge.svg?branch=master)](https://coveralls.io/github/scivision/reesaurora?branch=master)
 [![Maintainability](https://api.codeclimate.com/v1/badges/fae4ee1dfb20a766ebce/maintainability)](https://codeclimate.com/github/scivision/reesaurora/maintainability)
+[![pypi versions](https://img.shields.io/pypi/pyversions/reesaurora.svg)](https://pypi.python.org/pypi/reesaurora)
+[![pypi format](https://img.shields.io/pypi/format/reesaurora.svg)](https://pypi.python.org/pypi/reesaurora)
 [![PyPi Download stats](http://pepy.tech/badge/reesaurora)](http://pepy.tech/project/reesaurora)
 
 
