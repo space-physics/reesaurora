@@ -51,7 +51,7 @@ def runrees(t, glat, glon, isotropic, outfn, minalt, nalt, vlim, verbose):
 # %% outputs
     writeeigen(outfn, E, t, z, prates=Q, tezs=None, latlon=(glat, glon))
 
-    plotA(Q, 'Volume Production Rate {}  ({:.2f},{:.2f})'.format(t, glat, glon), vlim)
+    plotA(Q, f'Volume Production Rate {t}  ({glat:.2f},{glon:.2f})', vlim)
 
 
 def makefig7(datfn: Path):
