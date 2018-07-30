@@ -4,8 +4,7 @@ import xarray
 from numpy import datetime64
 from numpy.testing import assert_allclose
 import pytest
-#
-from reesaurora import reesiono, loadaltenergrid
+import reesaurora as ra
 
 R = Path(__file__).resolve().parents[1]
 
@@ -18,9 +17,9 @@ def test_reesiono():
     glon = -148.
     t = '2013-03-31T12:00:00'  # datetime(2013,3,31,12)
 # %%
-    z, E = loadaltenergrid(minalt, nalt)  # altitude grid, Energy Grid
+    z, E = ra.loadaltenergrid(minalt, nalt)  # altitude grid, Energy Grid
 # %%
-    Q = reesiono(t, z, E, glat, glon, isotropic, datfn=R / 'data/SergienkoIvanov.h5', verbose=False)
+    Q = ra.reesiono(t, z, E, glat, glon, isotropic, datfn=R / 'data/SergienkoIvanov.h5', verbose=False)
     assert isinstance(Q, xarray.DataArray)
 # %%
     assert_allclose(Q.alt_km.values, z)
@@ -31,7 +30,7 @@ def test_reesiono():
     # Qv = Q[0].sum('species')  # total production
     # print([Qv[23,58],Qv[53,68]])
     assert_allclose([Qv[23, 58], Qv[53, 68]],
-                    [8.280217e-04,   5.448110e-06], rtol=1e-5)
+                    [8.186955e-04, 5.609914e-06], rtol=1e-5)
 
 
 if __name__ == '__main__':

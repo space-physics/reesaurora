@@ -9,17 +9,14 @@ from dateutil.parser import parse
 from datetime import datetime
 import xarray
 import numpy as np
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d  # not numpy.interp since only for 1-D
 from typing import Union, Tuple
+from msise00 import rungtd1d
 from gridaurora.ztanh import setupz
 from gridaurora.zglow import glowalt
-from msise00 import rungtd1d
 
 species = ['N2', 'O', 'O2']
 usesemeter = True
-
-# def #reesiono(T,altkm:ndarray,E:ndarray,glat:float,glon:float,isotropic:bool,verbose:int,datfn):
-
 
 def reesiono(T: Union[str, datetime], altkm: np.ndarray, E: np.ndarray,
              glat: float, glon: float, isotropic: bool, verbose: bool,
