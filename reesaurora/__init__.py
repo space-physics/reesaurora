@@ -18,6 +18,7 @@ from gridaurora.zglow import glowalt
 species = ['N2', 'O', 'O2']
 usesemeter = True
 
+
 def reesiono(T: Union[str, datetime], altkm: np.ndarray, E: np.ndarray,
              glat: float, glon: float, isotropic: bool, verbose: bool,
              datfn: Path) -> xarray.DataArray:
