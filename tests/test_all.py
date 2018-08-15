@@ -2,7 +2,7 @@
 from pathlib import Path
 import xarray
 from numpy import datetime64
-from numpy.testing import assert_allclose
+from pytest import approx
 import pytest
 import reesaurora as ra
 
@@ -22,16 +22,15 @@ def test_reesiono():
     Q = ra.reesiono(t, z, E, glat, glon, isotropic, datfn=R / 'data/SergienkoIvanov.h5', verbose=False)
     assert isinstance(Q, xarray.DataArray)
 # %%
-    assert_allclose(Q.alt_km.values, z)
-    assert_allclose(Q.energy.values, E)
+    assert Q.alt_km.values == approx(z)
+    assert Q.energy.values == approx(E)
     assert Q.time[0] == datetime64(t), 'times didnt match up'
 
     Qv = Q.squeeze()
     # Qv = Q[0].sum('species')  # total production
     # print([Qv[23,58],Qv[53,68]])
-    assert_allclose([Qv[23, 58], Qv[53, 68]],
-                    [8.186955e-04, 5.609914e-06], rtol=1e-5)
+    assert [Qv[23, 58], Qv[53, 68]] == approx([8.186955e-04, 5.609914e-06], rel=1e-5)
 
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main(['-x', __file__])
