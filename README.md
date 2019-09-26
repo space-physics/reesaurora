@@ -1,11 +1,8 @@
 [![image](https://zenodo.org/badge/36744637.svg)](https://zenodo.org/badge/latestdoi/36744637)
-[![image](https://travis-ci.org/scivision/reesaurora.svg)](https://travis-ci.org/scivision/reesaurora)
-[![Coverage Status](https://coveralls.io/repos/github/scivision/reesaurora/badge.svg?branch=master)](https://coveralls.io/github/scivision/reesaurora?branch=master)
-<!-- [![Build status](https://ci.appveyor.com/api/projects/status/r90wkqjjhtefltxt?svg=true)](https://ci.appveyor.com/project/scivision/reesaurora) 
-Not sure Appveyor is broken, since Linux works on Travis CI -->
-[![Maintainability](https://api.codeclimate.com/v1/badges/fae4ee1dfb20a766ebce/maintainability)](https://codeclimate.com/github/scivision/reesaurora/maintainability)
+
+[![Actions Status](https://github.com/space-physics/reesaurora/workflows/ci_python/badge.svg)](https://github.com/space-physics/reesaurora/actions)
+
 [![pypi versions](https://img.shields.io/pypi/pyversions/reesaurora.svg)](https://pypi.python.org/pypi/reesaurora)
-[![pypi format](https://img.shields.io/pypi/format/reesaurora.svg)](https://pypi.python.org/pypi/reesaurora)
 [![PyPi Download stats](http://pepy.tech/badge/reesaurora)](http://pepy.tech/project/reesaurora)
 
 
@@ -28,7 +25,7 @@ primary electron precipitation on this neutral background.
 
 ## Install
 
-Requires a Fortran compiler, such as `gfortran`. 
+Requires a Fortran compiler, such as `gfortran`.
 Any Fortran compiler should work:
 
     pip install -e .
@@ -37,6 +34,6 @@ Any Fortran compiler should work:
 
     ReesSergienkoIvanov -t 2011-03-15T12:34:56 -c 65 -148
 
-* `-o` specify output file (HDF5) 
+* `-o` specify output file (HDF5)
 * `-c` specify geographic lat,lon
 

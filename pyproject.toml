@@ -1,2 +1,3 @@
 [build-system]
 requires = ["setuptools", "wheel", "numpy"]
+# numpy is for msise00 prereq
