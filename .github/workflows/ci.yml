@@ -4,33 +4,50 @@ on: [push, pull_request]
 
 jobs:
 
-  lint:
+  linux:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-python@v1
       with:
         python-version: '3.x'
-    - run: pip install -e .[lint]
+    - run: sudo apt install -yq --no-install-recommends ninja-build gfortran
+    - run: |
+        pip install -e .[tests,lint]
+        pip install meson
     - run: flake8
     - run: mypy .
+    - run: pytest -r a -v
 
-  integration:
-    needs: [lint]
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+  macos:
+    runs-on: macos-latest
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-python@v1
       with:
         python-version: '3.x'
+    - run: brew install gcc ninja
+    - run: |
+        pip install -e .[tests]
+        pip install meson
+    - run: pytest -r a -v
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - run: |
+        cinst -y ninja
+        pip install meson
     - run: pip install -e .[tests]
     - run: pytest -r a -v
 
+
   install:
-    needs: [integration]
+    needs: [linux]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
