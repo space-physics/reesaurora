@@ -1,12 +1,10 @@
-[![image](https://zenodo.org/badge/36744637.svg)](https://zenodo.org/badge/latestdoi/36744637)
+# Rees-Sergienko-Ivanov Auroral model
 
-[![Actions Status](https://github.com/space-physics/reesaurora/workflows/ci_python/badge.svg)](https://github.com/space-physics/reesaurora/actions)
+[![image](https://zenodo.org/badge/36744637.svg)](https://zenodo.org/badge/latestdoi/36744637)
+![ci_python](https://github.com/space-physics/reesaurora/workflows/ci_python/badge.svg)
 
 [![pypi versions](https://img.shields.io/pypi/pyversions/reesaurora.svg)](https://pypi.python.org/pypi/reesaurora)
 [![PyPi Download stats](http://pepy.tech/badge/reesaurora)](http://pepy.tech/project/reesaurora)
-
-
-# Rees-Sergienko-Ivanov Auroral model
 
 Rees-Sergienko-Ivanov model of excitation rates, relevant to auroral
 optical emissions inspired/based upon Gustavsson / Brandstrom et al
@@ -22,18 +20,20 @@ primary electron precipitation on this neutral background.
 
 ![volume production rate](tests/demo.png)
 
-
 ## Install
 
 Requires a Fortran compiler, such as `gfortran`.
 Any Fortran compiler should work:
 
-    pip install -e .
+```sh
+pip install -e .
+```
 
 ## Example
 
-    ReesSergienkoIvanov -t 2011-03-15T12:34:56 -c 65 -148
+```sh
+python ReesSergienkoIvanov -t 2011-03-15T12:34:56 -c 65 -148
+```
 
 * `-o` specify output file (HDF5)
 * `-c` specify geographic lat,lon
-
