@@ -11,6 +11,7 @@ jobs:
     - uses: actions/setup-python@v1
       with:
         python-version: '3.x'
+    - run: sudo apt install -yq --no-install-recommends gfortran ninja-build
     - run: pip install .[tests,lint]
     - run: flake8
     - run: mypy .
@@ -24,6 +25,7 @@ jobs:
     - uses: actions/setup-python@v1
       with:
         python-version: '3.x'
+    - run: brew install gcc ninja
     - run: pip install .[tests]
     - run: pytest
       working-directory: tests
@@ -35,6 +37,7 @@ jobs:
     - uses: actions/setup-python@v1
       with:
         python-version: '3.x'
+    - run: cinst -y ninja
     - run: pip install .[tests]
     - run: pytest
       working-directory: tests
