@@ -8,13 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-    - run: sudo apt install -yq --no-install-recommends gfortran ninja-build
+    - run: sudo apt install -yq --no-install-recommends ninja-build
     - run: pip install .[tests,lint]
     - run: flake8
-    - run: mypy .
+    - run: mypy
     - run: pytest
       working-directory: tests
 
@@ -22,7 +22,7 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
     - run: brew install gcc ninja
@@ -34,7 +34,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/setup-python@v1
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
     - run: cinst -y ninja
