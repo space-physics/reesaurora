@@ -1,9 +1,8 @@
-#!/usr/bin/env python
 from pathlib import Path
 import xarray
 from numpy import datetime64
 from pytest import approx
-import pytest
+
 import reesaurora as ra
 
 R = Path(__file__).resolve().parents[1]
@@ -39,7 +38,3 @@ def test_reesiono():
     # Qv = Q[0].sum('species')  # total production
     # print([Qv[23,58],Qv[53,68]])
     assert [Qv[23, 58], Qv[53, 68]] == approx([8.186955e-04, 5.609914e-06], rel=1e-5)
-
-
-if __name__ == "__main__":
-    pytest.main(["-x", __file__])

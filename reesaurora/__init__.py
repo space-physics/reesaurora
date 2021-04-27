@@ -17,6 +17,8 @@ ionization_profiles_from_flux - simple model for volume emission as function of 
    After Sergienko and Ivanov 1993
    a massively speeded up implementation after the AIDA_TOOLS package by Gustavsson, Brandstrom, et al
 """
+
+from __future__ import annotations
 from pathlib import Path
 import logging
 from dateutil.parser import parse
@@ -24,7 +26,7 @@ from datetime import datetime
 import xarray
 import numpy as np
 from scipy.interpolate import interp1d  # not numpy.interp since only for 1-D
-from typing import Union, Tuple
+
 from msise00 import rungtd1d
 from gridaurora.ztanh import setupz
 from gridaurora.zglow import glowalt
@@ -34,7 +36,7 @@ usesemeter = True
 
 
 def reesiono(
-    T: Union[str, datetime],
+    T: str | datetime,
     altkm: np.ndarray,
     E: np.ndarray,
     glat: float,
@@ -51,7 +53,7 @@ def reesiono(
 
     if isinstance(T, str):
         T = parse(T)
-    time = np.atleast_1d(T)
+    time = np.atleast_1d(np.asarray(T))
     assert isinstance(time[0], datetime)
     # %% MSIS
     if isotropic:
@@ -61,7 +63,7 @@ def reesiono(
 
     Qt = xarray.DataArray(
         data=np.empty((time.size, altkm.size, E.size)),
-        coords=[time, altkm, E],
+        coords={"time": time, "alt_km": altkm, "energy": E},
         dims=["time", "alt_km", "energy"],
     )
     # %% loop
@@ -154,8 +156,8 @@ def PitchAngle_range(E: np.ndarray, isotropic: bool) -> np.ndarray:
     return pr * (E / 1e3) ** 1.67 * (1 + 9.48e-2 * E ** -1.57)
 
 
-def albedo(E: np.ndarray, isotropic: Union[int, bool]) -> np.ndarray:
-    """ ionospheric albedo model"""
+def albedo(E: np.ndarray, isotropic: int | bool) -> np.ndarray:
+    """ionospheric albedo model"""
     isotropic = int(isotropic)
     assert isotropic in (0, 1)
 
@@ -432,7 +434,7 @@ def lambda_comp(hi: np.ndarray, E: np.ndarray, isotropic: bool) -> np.ndarray:
 
 
 def partition(
-    iono: xarray.Dataset, k: np.ndarray, cost: np.ndarray
+    iono: xarray.Dataset, k: dict[str, float], cost: dict[str, float]
 ) -> xarray.DataArray:
     """
     Implement Eqn 7 Sergienko 1993
@@ -449,7 +451,7 @@ def partition(
 
     num = xarray.DataArray(
         data=np.empty((N.alt_km.size, len(species))),
-        coords=[N.alt_km, species],
+        coords={"alt_km": N.alt_km, "species": species},
         dims=["alt_km", "species"],
     )
     for i in species:
@@ -470,7 +472,7 @@ def partition(
 
 def loadaltenergrid(
     minalt: float = 90, Nalt: int = 286, special_grid: str = ""
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     makes a tanh-spaced grid (see setupz for info)
 
